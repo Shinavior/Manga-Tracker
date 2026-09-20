@@ -9,6 +9,10 @@
 - 🎯 **Single Row per Series**: Ingesting chapter URLs from any site automatically groups chapters under their canonical series card.
 - ⚡ **Multi-Tier Caching**: Permanent chapter cache, 7-day manga metadata cache, and 6-hour feed cache for MangaDex with concurrency limiter (5 req/sec) and HTTP 429 exponential backoff.
 - ⏭️ **One-Tap Next Chapter**: Automatically queries and computes the next chapter feed or probes `{ch}` URL patterns.
+- 🗑️ **Trash & 30-Day Purge**: Automatic chapter archiving with live 30-day countdown timers, 1-tap restore, and scheduled purge.
+- 🔗 **Series Merging**: Lossless series merge with smart title-similarity suggestions to combine duplicates seamlessly.
+- 📦 **Backup, Export & Bookmarks Import**: Full JSON export/backup and Netscape HTML browser bookmarks ingestion with interactive dry-run preview.
+- ⏰ **Automated Background Jobs**: Daily cron jobs for auto-purging expired chapters and scanning active series for new chapter releases.
 - 📱 **Mobile Ingestion & Web Share Target**: PWA with native system Share Sheet support on Chrome Android and iOS Shortcuts.
 - 📌 **1-Tap Browser Bookmarklet**: In-page silent toast bookmarklet allows tracking manga with a single click while browsing on any site.
 - 🔑 **Secure API Tokens**: SHA-256 hashed API keys for external integrations, Shortcuts, and extensions.
@@ -21,7 +25,7 @@
 - **Framework**: Next.js 15 (App Router, React 19, TypeScript)
 - **Styling**: Tailwind CSS & Lucide React
 - **Database & Persistence**: Drizzle ORM + PostgreSQL schema with transactional in-memory store for single-user dev mode
-- **Testing**: Vitest (76 unit & integration tests, >90% coverage)
+- **Testing**: Vitest (99 unit & integration tests, >90% coverage)
 
 ---
 

@@ -27,7 +27,6 @@ describe('Phase 4: Trash, Chapter Restore & Series Merging', () => {
           seriesTitle: 'Solo Leveling',
           coverUrl: 'https://test.com/cover.jpg',
           confidence: 'high',
-          needsReview: false,
         },
       });
 
@@ -42,7 +41,6 @@ describe('Phase 4: Trash, Chapter Restore & Series Merging', () => {
           chapterUrl: 'https://test.com/manga/solo/2',
           seriesTitle: 'Solo Leveling',
           confidence: 'high',
-          needsReview: false,
         },
       });
 
@@ -70,7 +68,6 @@ describe('Phase 4: Trash, Chapter Restore & Series Merging', () => {
           chapterUrl: 'https://test.com/manga/solo/1',
           seriesTitle: 'Solo Leveling',
           confidence: 'high',
-          needsReview: false,
         },
       });
 
@@ -84,7 +81,6 @@ describe('Phase 4: Trash, Chapter Restore & Series Merging', () => {
           chapterUrl: 'https://test.com/manga/solo/2',
           seriesTitle: 'Solo Leveling',
           confidence: 'high',
-          needsReview: false,
         },
       });
 
@@ -117,7 +113,6 @@ describe('Phase 4: Trash, Chapter Restore & Series Merging', () => {
           chapterUrl: 'https://test.com/manga/solo/1',
           seriesTitle: 'Solo Leveling',
           confidence: 'high',
-          needsReview: false,
         },
       });
 
@@ -131,7 +126,6 @@ describe('Phase 4: Trash, Chapter Restore & Series Merging', () => {
           chapterUrl: 'https://test.com/manga/solo/2',
           seriesTitle: 'Solo Leveling',
           confidence: 'high',
-          needsReview: false,
         },
       });
 
@@ -161,7 +155,6 @@ describe('Phase 4: Trash, Chapter Restore & Series Merging', () => {
           seriesTitle: 'Sousou no Frieren',
           coverUrl: 'https://site1.com/cover.jpg',
           confidence: 'high',
-          needsReview: false,
         },
         tags: ['fantasy'],
       });
@@ -177,7 +170,6 @@ describe('Phase 4: Trash, Chapter Restore & Series Merging', () => {
           chapterUrl: 'https://site2.com/manga/frieren-beyond/12',
           seriesTitle: "Frieren: Beyond Journey's End",
           confidence: 'high',
-          needsReview: false,
         },
         tags: ['adventure'],
       });
@@ -223,7 +215,6 @@ describe('Phase 4: Trash, Chapter Restore & Series Merging', () => {
           chapterUrl: 'https://site1.com/solo/1',
           seriesTitle: 'Solo Leveling Ragnarok',
           confidence: 'high',
-          needsReview: false,
         },
       });
 
@@ -237,7 +228,6 @@ describe('Phase 4: Trash, Chapter Restore & Series Merging', () => {
           chapterUrl: 'https://site2.com/solo/1',
           seriesTitle: 'Solo Leveling Side Stories',
           confidence: 'high',
-          needsReview: false,
         },
       });
 

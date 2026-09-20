@@ -276,11 +276,11 @@ describe('Manga Resolver Unit Tests', () => {
       expect(nextUrl).toBe('https://site.com/manga/naruto/501');
     });
 
-    it('returns null if next chapter fetch fails or not found', async () => {
+    it('returns null if next chapter is not found (HTTP 404)', async () => {
       vi.stubGlobal(
         'fetch',
         vi.fn(async () => {
-          throw new Error('Network error');
+          return { ok: false, status: 404 };
         })
       );
 
@@ -527,7 +527,7 @@ describe('Manga Resolver Unit Tests', () => {
         }))
       );
 
-      const adapter = new FallbackAdapter({ fetchTimeoutMs: 1000 });
+      const adapter = new FallbackAdapter();
       const res = await adapter.resolve(new URL('https://protected.com/manga'));
 
       expect(res.source).toBe('fallback');
@@ -631,6 +631,70 @@ describe('Manga Resolver Unit Tests', () => {
         `https://mangadex.org/chapter/${MOCK_CHAPTER_1_UUID}?page=5&other=1`
       );
       expect(res.chapterUrl).toBe(`https://mangadex.org/chapter/${MOCK_CHAPTER_1_UUID}`);
+    });
+
+    it('resolves Thai manga URLs with attached chapter slugs and merges them', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => ({
+          ok: true,
+          status: 200,
+          text: async () => `
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <title>อ่านมังงะ Delusional Hunter World ตอนที่ 1 แปลไทย | Dark-Manga</title>
+              </head>
+              <body><h1>Delusional Hunter World</h1></body>
+            </html>
+          `,
+        }))
+      );
+
+      const adapter = new GenericNumericAdapter();
+      const url1 = new URL('https://www.dark-manga.com/delusional-hunter-world-ตอนที่-1/');
+      const url2 = new URL('https://www.dark-manga.com/delusional-hunter-world-ตอนที่-2/');
+
+      const res1 = await adapter.resolve(url1);
+      const res2 = await adapter.resolve(url2);
+
+      expect(res1.seriesKey).toBe('dark-manga.com/delusional-hunter-world-ตอนที่-{ch}');
+      expect(res2.seriesKey).toBe('dark-manga.com/delusional-hunter-world-ตอนที่-{ch}');
+      expect(res1.seriesKey).toBe(res2.seriesKey);
+
+      expect(res1.chapterNumber).toBe(1);
+      expect(res2.chapterNumber).toBe(2);
+
+      expect(res1.chapterLabel).toBe('Ch. 1');
+      expect(res2.chapterLabel).toBe('Ch. 2');
+
+      expect(res1.seriesTitle).toBe('Delusional Hunter World');
+    });
+
+    it('extracts Nekopost CDN cover image pattern automatically', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => ({
+          ok: true,
+          status: 200,
+          text: async () => `
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <title>Nekopost Manga Reader</title>
+              </head>
+            </html>
+          `,
+        }))
+      );
+
+      const adapter = new GenericNumericAdapter();
+      const url = new URL('https://www.nekopost.net/manga/17045/1');
+      const res = await adapter.resolve(url);
+
+      expect(res.seriesKey).toBe('nekopost.net/manga/17045/{ch}');
+      expect(res.chapterNumber).toBe(1);
+      expect(res.coverUrl).toBe('https://www.osemocphoto.com/collectManga/17045/17045_mini.jpg');
     });
   });
 });

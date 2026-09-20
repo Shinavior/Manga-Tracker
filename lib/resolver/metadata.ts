@@ -1,5 +1,6 @@
 export interface ScrapedMetadata {
-  title: string | null;
+  title: string | null;       // cleaned series title
+  rawTitle: string | null;    // original page title before cleaning (useful for chapter number extraction)
   coverUrl: string | null;
   siteName: string | null;
   error?: string;
@@ -32,19 +33,26 @@ export function isPrivateIp(hostname: string): boolean {
 export function cleanScrapedTitle(rawTitle: string): string {
   let cleaned = rawTitle.trim();
 
+  // Strip leading site / action prefixes (e.g. "อ่านมังงะ ", "อ่านการ์ตูน ", "มังงะ ")
+  cleaned = cleaned.replace(/^\[?(อ่านมังงะ|อ่านการ์ตูน|มังงะ|อ่านเรื่อง|อ่าน|read manga online|read manga|read)\]?\s*[-:]?\s*/i, '').trim();
+
   // Strip common delimiters and suffixes (e.g. "Solo Leveling Chapter 10 - Read Manga Online Free")
   const noisePatterns = [
-    /\s*[-|–—]\s*(read\s+online|read\s+manga|read\s+free|mangadex|nekopost|chapmanganato|manganato|mangakakalot|batoto).*$/i,
-    /\s*[-|–—]\s*(ตอนที่|chapter|ch\.)\s*[\d.]+\s*(free\s+online|online|raw|eng\s*sub)?.*$/i,
-    /\s*\|\s*.*$/, // Pipe and anything after
+    /\s*[-|–—]\s*(read\s+online|read\s+manga|read\s+free|mangadex|nekopost|chapmanganato|manganato|mangakakalot|batoto|dark-manga).*$/i,
+    /\s*[-|–—]\s*(ตอนที่|chapter|ch\.)\s*[\d.]+\s*(free\s+online|online|raw|eng\s*sub|แปลไทย)?.*$/i,
+    /\s*\|\s*.*$/, // Pipe and anything after (e.g. " | Dark-Manga", " | Nekopost")
+    /\s*[-–—]\s*Chapter\s*[\d.]+.*$/i,
   ];
 
   for (const pattern of noisePatterns) {
     cleaned = cleaned.replace(pattern, '').trim();
   }
 
-  // Remove trailing chapter references if any, e.g. "Solo Leveling Chapter 100" -> "Solo Leveling"
-  cleaned = cleaned.replace(/\s+(chapter|ตอนที่|ch\.)\s*[\d.]+(\s*[-:]\s*.*)?$/i, '').trim();
+  // Remove trailing chapter and translation references, e.g. "ตอนที่ 1 แปลไทย", "Chapter 100", "Ch. 5"
+  cleaned = cleaned.replace(/\s+(chapter|ตอนที่|ตอน|บทที่|ch\.|ep\.)\s*[\d.]+(\s*[-:]\s*.*|\s+แปลไทย|\s+ซับไทย|\s+raw|\s+eng\s*sub)?.*$/i, '').trim();
+
+  // Strip standalone trailing "แปลไทย" or "ซับไทย"
+  cleaned = cleaned.replace(/\s+(แปลไทย|ซับไทย)$/i, '').trim();
 
   return cleaned || rawTitle.trim();
 }
@@ -57,11 +65,11 @@ export async function scrapePageMetadata(url: string): Promise<ScrapedMetadata> 
   try {
     const parsed = new URL(url);
     if (!['http:', 'https:'].includes(parsed.protocol)) {
-      return { title: null, coverUrl: null, siteName: null, error: 'INVALID_PROTOCOL' };
+      return { title: null, rawTitle: null, coverUrl: null, siteName: null, error: 'INVALID_PROTOCOL' };
     }
 
     if (isPrivateIp(parsed.hostname)) {
-      return { title: null, coverUrl: null, siteName: null, error: 'SSRF_BLOCKED' };
+      return { title: null, rawTitle: null, coverUrl: null, siteName: null, error: 'SSRF_BLOCKED' };
     }
 
     const controller = new AbortController();
@@ -79,10 +87,10 @@ export async function scrapePageMetadata(url: string): Promise<ScrapedMetadata> 
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      return { title: null, coverUrl: null, siteName: null, error: `HTTP_${response.status}` };
+      return { title: null, rawTitle: null, coverUrl: null, siteName: null, error: `HTTP_${response.status}` };
     }
 
-    // Read only the first 64KB of HTML to parse head quickly
+    // Read first 64KB of HTML to parse head quickly
     const text = await response.text();
     const headSample = text.slice(0, 65536);
 
@@ -101,12 +109,25 @@ export async function scrapePageMetadata(url: string): Promise<ScrapedMetadata> 
       headSample.match(/<meta\s+content=["']([^"']+)["']\s+property=["']og:image["']/i) ||
       headSample.match(/<meta\s+name=["']twitter:image["']\s+content=["']([^"']+)["']/i);
 
+    // Extract Schema JSON-LD image / thumbnail or Svelte/Nuxt embedded state image
+    const schemaImageMatch =
+      headSample.match(/["'](?:thumbnailUrl|primaryImageOfPage|image)["']\s*:\s*["'](https?:\/\/[^"']+)["']/i) ||
+      headSample.match(/image:\s*["'](https?:\/\/[^"']+)["']/i);
+
     // Extract og:site_name
     const ogSiteNameMatch = headSample.match(/<meta\s+property=["']og:site_name["']\s+content=["']([^"']+)["']/i);
 
     let rawTitle = ogTitleMatch ? ogTitleMatch[1] : titleTagMatch ? titleTagMatch[1] : null;
-    let coverUrl = ogImageMatch ? ogImageMatch[1] : null;
+    let coverUrl = ogImageMatch ? ogImageMatch[1] : schemaImageMatch ? schemaImageMatch[1] : null;
     const siteName = ogSiteNameMatch ? ogSiteNameMatch[1] : null;
+
+    // Nekopost-specific cover CDN fallback if not found in HTML meta
+    if (!coverUrl && parsed.hostname.includes('nekopost.net')) {
+      const nekoMatch = parsed.pathname.match(/\/(?:manga|comic|project)\/(\d+)/i);
+      if (nekoMatch && nekoMatch[1]) {
+        coverUrl = `https://www.osemocphoto.com/collectManga/${nekoMatch[1]}/${nekoMatch[1]}_mini.jpg`;
+      }
+    }
 
     if (rawTitle) {
       // Decode basic HTML entities
@@ -130,11 +151,12 @@ export async function scrapePageMetadata(url: string): Promise<ScrapedMetadata> 
 
     return {
       title: rawTitle ? cleanScrapedTitle(rawTitle) : null,
+      rawTitle: rawTitle ?? null,
       coverUrl,
       siteName,
     };
   } catch (err: unknown) {
     const message = (err as Error).message || 'Scrape failed';
-    return { title: null, coverUrl: null, siteName: null, error: message };
+    return { title: null, rawTitle: null, coverUrl: null, siteName: null, error: message };
   }
 }

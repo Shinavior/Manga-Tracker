@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { usePreferences } from '@/lib/preferences-context';
 
 interface ApiTokenItem {
   id: string;
@@ -11,7 +12,25 @@ interface ApiTokenItem {
   lastUsedAt: string | null;
 }
 
+interface ImportPreviewItem {
+  url: string;
+  seriesKey: string;
+  seriesTitle: string;
+  chapterLabel: string;
+  isNewSeries: boolean;
+  existingSeriesId?: string;
+}
+
+interface ImportPreviewData {
+  dryRun: boolean;
+  totalItems: number;
+  newSeriesCount: number;
+  existingSeriesCount: number;
+  preview?: ImportPreviewItem[];
+}
+
 export default function SettingsPage() {
+  const { t } = usePreferences();
   const [tokens, setTokens] = useState<ApiTokenItem[]>([]);
   const [loadingTokens, setLoadingTokens] = useState(true);
   const [newTokenName, setNewTokenName] = useState('');
@@ -23,6 +42,21 @@ export default function SettingsPage() {
   const [tokenMode, setTokenMode] = useState<'single_user' | 'custom'>('single_user');
   const [bookmarkletType, setBookmarkletType] = useState<'toast' | 'popup'>('toast');
   const [baseUrl, setBaseUrl] = useState<string>('');
+
+  // Backup & Import state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [analyzingImport, setAnalyzingImport] = useState(false);
+  const [importPreview, setImportPreview] = useState<ImportPreviewData | null>(null);
+  const [executingImport, setExecutingImport] = useState(false);
+  const [importSuccessMessage, setImportSuccessMessage] = useState<string | null>(null);
+  const [importErrorMessage, setImportErrorMessage] = useState<string | null>(null);
+
+  // Maintenance & Cron state
+  const [runningPurge, setRunningPurge] = useState(false);
+  const [purgeResult, setPurgeResult] = useState<string | null>(null);
+  const [runningUpdateCheck, setRunningUpdateCheck] = useState(false);
+  const [updateCheckResult, setUpdateCheckResult] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -87,6 +121,119 @@ export default function SettingsPage() {
     }
   };
 
+  // Export JSON handler
+  const handleExportData = () => {
+    const token = tokenMode === 'custom' ? customTokenInput.trim() : '';
+    const query = token ? `?k=${encodeURIComponent(token)}` : '';
+    window.location.href = `/api/export${query}`;
+  };
+
+  // File selection for import
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSelectedFile(file);
+    setImportSuccessMessage(null);
+    setImportErrorMessage(null);
+    setAnalyzingImport(true);
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('dryRun', 'true');
+
+    try {
+      const res = await fetch('/api/import?dryRun=true', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setImportPreview(data);
+      } else {
+        setImportErrorMessage(data.error?.message || 'Failed to analyze import file');
+        setImportPreview(null);
+      }
+    } catch (err) {
+      setImportErrorMessage((err as Error).message);
+      setImportPreview(null);
+    } finally {
+      setAnalyzingImport(false);
+    }
+  };
+
+  // Confirm and Execute Import
+  const handleConfirmImport = async () => {
+    if (!selectedFile) return;
+
+    setExecutingImport(true);
+    setImportErrorMessage(null);
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    formData.append('dryRun', 'false');
+
+    try {
+      const res = await fetch('/api/import?dryRun=false', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setImportSuccessMessage(`Successfully imported ${data.savedCount || 0} chapters across ${data.totalItems} items!`);
+        setImportPreview(null);
+        setSelectedFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      } else {
+        setImportErrorMessage(data.error?.message || 'Failed to execute import');
+      }
+    } catch (err) {
+      setImportErrorMessage((err as Error).message);
+    } finally {
+      setExecutingImport(false);
+    }
+  };
+
+  // Run Purge Job
+  const handleRunPurge = async () => {
+    setRunningPurge(true);
+    setPurgeResult(null);
+    try {
+      const res = await fetch('/api/cron/purge', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        setPurgeResult(`Purged ${data.purgedCount} expired chapters from storage.`);
+      } else {
+        setPurgeResult(`Error: ${data.error?.message || 'Failed to run purge'}`);
+      }
+    } catch (err) {
+      setPurgeResult(`Error: ${(err as Error).message}`);
+    } finally {
+      setRunningPurge(false);
+    }
+  };
+
+  // Run Update Check Job
+  const handleRunUpdateCheck = async () => {
+    setRunningUpdateCheck(true);
+    setUpdateCheckResult(null);
+    try {
+      const res = await fetch('/api/cron/check-updates', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        setUpdateCheckResult(`Checked ${data.checkedCount} series: found ${data.updatedCount} new chapters!`);
+      } else {
+        setUpdateCheckResult(`Error: ${data.error?.message || 'Failed to check updates'}`);
+      }
+    } catch (err) {
+      setUpdateCheckResult(`Error: ${(err as Error).message}`);
+    } finally {
+      setRunningUpdateCheck(false);
+    }
+  };
+
   // Determine active token string for bookmarklet
   const activeToken = tokenMode === 'custom' ? customTokenInput.trim() : '';
   const tokenParam = activeToken ? `?k=${encodeURIComponent(activeToken)}` : '';
@@ -112,30 +259,232 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between border-b border-zinc-800 pb-5">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Settings & Integrations</h1>
-          <p className="text-sm text-zinc-400 mt-1">
-            Configure mobile share targets, API tokens, and 1-tap browser bookmarklets
-          </p>
+          <h1 className="text-2xl font-bold text-white tracking-tight">{t('settingsTitle')}</h1>
+          <p className="text-sm text-zinc-400 mt-1">{t('settingsSubtitle')}</p>
         </div>
         <Link
           href="/"
           className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-medium transition-colors border border-zinc-700"
         >
-          &larr; Back to Library
+          {t('backToLibrary')}
         </Link>
       </div>
 
-      {/* 1. API Tokens Section */}
+      {/* 1. Backup, Restore & Bookmarks Import */}
+      <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-6">
+        <div>
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            {t('sectionBackupTitle')}
+          </h2>
+          <p className="text-xs text-zinc-400 mt-1">
+            {t('sectionBackupDesc')}
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Export Box */}
+          <div className="bg-zinc-950/60 border border-zinc-800 rounded-xl p-5 space-y-3 flex flex-col justify-between">
+            <div>
+              <div className="text-sm font-semibold text-white flex items-center gap-2"><span>📦</span> {t('exportLibraryTitle')}</div>
+              <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{t('exportLibraryDesc')}</p>
+            </div>
+            <button
+              onClick={handleExportData}
+              className="w-full px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold transition-colors border border-zinc-700 flex items-center justify-center gap-2"
+            >
+              <span>{t('exportDownload')}</span>
+            </button>
+          </div>
+
+          {/* Import Box */}
+          <div className="bg-zinc-950/60 border border-zinc-800 rounded-xl p-5 space-y-3 flex flex-col justify-between">
+            <div>
+              <div className="text-sm font-semibold text-white flex items-center gap-2"><span>📥</span> {t('importTitle')}</div>
+              <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{t('importDesc')}</p>
+            </div>
+
+            <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".html,.htm,.json"
+                onChange={handleFileChange}
+                className="hidden"
+                id="import-file-input"
+              />
+              <label
+                htmlFor="import-file-input"
+                className="w-full px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 cursor-pointer text-white text-xs font-semibold transition-colors flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20"
+              >
+                {analyzingImport ? t('analyzingFile') : t('selectFileToImport')}
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* Success/Error Banners */}
+        {importSuccessMessage && (
+          <div className="p-4 rounded-xl bg-emerald-950/50 border border-emerald-500/40 text-xs text-emerald-300 flex items-center gap-2">
+            <span>✅</span>
+            <span>{importSuccessMessage}</span>
+          </div>
+        )}
+
+        {importErrorMessage && (
+          <div className="p-4 rounded-xl bg-rose-950/50 border border-rose-500/40 text-xs text-rose-300 flex items-center gap-2">
+            <span>❌</span>
+            <span>{importErrorMessage}</span>
+          </div>
+        )}
+
+        {/* Dry-Run Preview Modal / Panel */}
+        {importPreview && (
+          <div className="bg-zinc-950 border border-indigo-500/40 rounded-xl p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div>
+                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <span>🔎</span> Import Preview (Dry-Run)
+                </h3>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Found {importPreview.totalItems} items: <strong className="text-emerald-400">{importPreview.newSeriesCount} new series</strong>, <strong className="text-indigo-400">{importPreview.existingSeriesCount} existing series updates</strong>.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setImportPreview(null);
+                  setSelectedFile(null);
+                  if (fileInputRef.current) fileInputRef.current.value = '';
+                }}
+                className="text-xs text-zinc-400 hover:text-zinc-200"
+              >
+                ✕ Cancel
+              </button>
+            </div>
+
+            {/* Preview List */}
+            <div className="max-h-60 overflow-y-auto divide-y divide-zinc-800/60 border border-zinc-800 rounded-lg">
+              {importPreview.preview?.map((p, idx) => (
+                <div key={idx} className="p-2.5 bg-zinc-900/50 flex items-center justify-between gap-3 text-xs">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-white truncate">{p.seriesTitle}</div>
+                    <div className="text-zinc-500 truncate text-[11px] font-mono">{p.url}</div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 font-mono text-[11px]">
+                      {p.chapterLabel}
+                    </span>
+                    {p.isNewSeries ? (
+                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-medium text-[11px] border border-emerald-500/30">
+                        New Series
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-medium text-[11px] border border-indigo-500/30">
+                        Update Existing
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                onClick={() => {
+                  setImportPreview(null);
+                  setSelectedFile(null);
+                  if (fileInputRef.current) fileInputRef.current.value = '';
+                }}
+                className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium transition-colors"
+              >
+                Discard
+              </button>
+              <button
+                onClick={handleConfirmImport}
+                disabled={executingImport}
+                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold transition-colors shadow-lg shadow-emerald-600/20 flex items-center gap-2"
+              >
+                {executingImport ? t('importing') : t('confirmAndImport')}
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* 2. Automated Jobs & Retention Purge */}
+      <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-6">
+        <div>
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            {t('sectionJobsTitle')}
+          </h2>
+          <p className="text-xs text-zinc-400 mt-1">
+            {t('sectionJobsDesc')}
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Purge Job Card */}
+          <div className="bg-zinc-950/60 border border-zinc-800 rounded-xl p-5 space-y-4 flex flex-col justify-between">
+            <div>
+              <div className="text-sm font-semibold text-white flex items-center gap-2"><span>🧹</span> {t('purgeJobTitle').replace('🧹 ','')}</div>
+              <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{t('purgeJobDesc')}</p>
+            </div>
+            <div className="space-y-2">
+              <button
+                onClick={handleRunPurge}
+                disabled={runningPurge}
+                className="w-full px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-zinc-200 text-xs font-semibold transition-colors border border-zinc-700"
+              >
+                {runningPurge ? t('purging') : t('runPurgeNow')}
+              </button>
+              {purgeResult && (
+                <div className="text-[11px] text-zinc-300 bg-zinc-900 p-2 rounded-lg border border-zinc-800">
+                  {purgeResult}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Update Check Job Card */}
+          <div className="bg-zinc-950/60 border border-zinc-800 rounded-xl p-5 space-y-4 flex flex-col justify-between">
+            <div>
+              <div className="text-sm font-semibold text-white flex items-center gap-2"><span>🔄</span> {t('updateJobTitle').replace('🔄 ','')}</div>
+              <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{t('updateJobDesc')}</p>
+            </div>
+            <div className="space-y-2">
+              <button
+                onClick={handleRunUpdateCheck}
+                disabled={runningUpdateCheck}
+                className="w-full px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-zinc-200 text-xs font-semibold transition-colors border border-zinc-700"
+              >
+                {runningUpdateCheck ? t('checking') : t('checkUpdatesNow2')}
+              </button>
+              {updateCheckResult && (
+                <div className="text-[11px] text-zinc-300 bg-zinc-900 p-2 rounded-lg border border-zinc-800">
+                  {updateCheckResult}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. API Tokens Section */}
       <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-6">
         <div>
           <h2 className="text-lg font-semibold text-white flex items-center gap-2">
             <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
             </svg>
-            API Tokens
+            {t('sectionTokensTitle')}
           </h2>
           <p className="text-xs text-zinc-400 mt-1">
-            API tokens allow external tools like iOS Shortcuts, bookmarklets, and browser extensions to save manga to your library securely.
+            {t('sectionTokensDesc')}
           </p>
         </div>
 
@@ -144,7 +493,7 @@ export default function SettingsPage() {
           <input
             type="text"
             required
-            placeholder="Token name (e.g. My iPhone, Safari Bookmarklet)"
+            placeholder={t('tokenNamePlaceholder')}
             value={newTokenName}
             onChange={(e) => setNewTokenName(e.target.value)}
             className="flex-1 px-4 py-2 rounded-xl bg-zinc-950 border border-zinc-700 text-white text-sm focus:outline-none focus:border-indigo-500 transition-colors"
@@ -154,7 +503,7 @@ export default function SettingsPage() {
             disabled={creatingToken}
             className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-medium text-sm transition-colors shadow-lg shadow-indigo-600/20 whitespace-nowrap"
           >
-            {creatingToken ? 'Generating...' : 'Create Token'}
+            {creatingToken ? t('generating') : t('createToken')}
           </button>
         </form>
 
@@ -162,9 +511,7 @@ export default function SettingsPage() {
         {createdRawToken && (
           <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-4 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-emerald-400">
-                New Token Created! Copy it now (it will not be shown again):
-              </span>
+              <span className="text-xs font-semibold text-emerald-400">{t('newTokenCreated')}</span>
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(createdRawToken);
@@ -173,7 +520,7 @@ export default function SettingsPage() {
                 }}
                 className="text-xs px-3 py-1 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-medium transition-colors"
               >
-                {copiedToken ? '✓ Copied' : 'Copy Key'}
+                {copiedToken ? t('copied') : t('copyKey')}
               </button>
             </div>
             <code className="block bg-zinc-950 p-2.5 rounded-lg text-xs font-mono text-emerald-300 break-all select-all border border-emerald-900/50">
@@ -184,13 +531,11 @@ export default function SettingsPage() {
 
         {/* Active Tokens List */}
         <div className="space-y-2">
-          <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Active Tokens</h3>
+          <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">{t('activeTokens')}</h3>
           {loadingTokens ? (
-            <div className="text-xs text-zinc-500 py-3">Loading tokens...</div>
+            <div className="text-xs text-zinc-500 py-3">{t('loadingTokens')}</div>
           ) : tokens.length === 0 ? (
-            <div className="text-xs text-zinc-500 py-3 bg-zinc-950/50 rounded-xl border border-zinc-800/80 px-4">
-              No API tokens created yet. (Single-user mode will accept unauthenticated requests by default).
-            </div>
+            <div className="text-xs text-zinc-500 py-3 bg-zinc-950/50 rounded-xl border border-zinc-800/80 px-4">{t('noTokensYet')}</div>
           ) : (
             <div className="divide-y divide-zinc-800 border border-zinc-800 rounded-xl overflow-hidden">
               {tokens.map((token) => (
@@ -211,7 +556,7 @@ export default function SettingsPage() {
                     onClick={() => handleRevokeToken(token.id)}
                     className="text-xs px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-medium transition-colors border border-rose-500/20"
                   >
-                    Revoke
+                    {t('revokeToken')}
                   </button>
                 </div>
               ))}
@@ -220,7 +565,7 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* 2. One-Tap Bookmarklet Section */}
+      {/* 4. One-Tap Bookmarklet Section */}
       <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-6">
         <div className="flex items-start justify-between">
           <div>
@@ -228,17 +573,17 @@ export default function SettingsPage() {
               <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
               </svg>
-              1-Tap Browser Bookmarklet
+              {t('sectionBookmarkletTitle')}
             </h2>
             <p className="text-xs text-zinc-400 mt-1">
-              Drag the button below to your browser bookmarks bar. When reading any manga online, click it to save instantly!
+              {t('sectionBookmarkletDesc')}
             </p>
           </div>
           <button
             onClick={testToastPreview}
             className="text-xs px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium border border-zinc-700"
           >
-            🧪 Test Toast Preview
+            {t('testToastPreview')}
           </button>
         </div>
 
@@ -319,14 +664,11 @@ export default function SettingsPage() {
 
         {/* Draggable button */}
         <div className="p-6 bg-zinc-950/70 border border-zinc-800 rounded-xl text-center space-y-3">
-          <p className="text-xs text-zinc-400">
-            👉 Drag this button to your Bookmarks Bar:
-          </p>
+          <p className="text-xs text-zinc-400">{t('dragInstruction')}</p>
           <div>
             <a
               href={activeBookmarkletCode}
               onClick={(e) => {
-                // Prevent navigation when clicked directly on page
                 e.preventDefault();
                 alert('👉 Drag this button to your browser Bookmarks Bar (Ctrl+Shift+B / Cmd+Shift+B to show bookmarks bar).');
               }}
@@ -361,17 +703,17 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* 3. Mobile Sharing (iOS Shortcuts & Android PWA) */}
+      {/* 5. Mobile Sharing (iOS Shortcuts & Android PWA) */}
       <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-6">
         <div>
           <h2 className="text-lg font-semibold text-white flex items-center gap-2">
             <svg className="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
             </svg>
-            Mobile Sharing & PWA Setup
+              {t('sectionMobileTitle')}
           </h2>
           <p className="text-xs text-zinc-400 mt-1">
-            Configure mobile sharing from Safari, Chrome, and reading apps.
+            {t('sectionMobileDesc')}
           </p>
         </div>
 

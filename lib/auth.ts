@@ -51,3 +51,14 @@ export async function authenticateRequest(request: Request): Promise<AuthContext
   throw new ResolverError('UNAUTHORIZED', 'Valid API token or authentication required', 401);
 }
 
+export async function authenticateCronRequest(request: Request): Promise<AuthContext> {
+  const cronSecret = process.env.CRON_SECRET;
+  const authHeader = request.headers.get('authorization');
+
+  if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+    return { userId: DEFAULT_USER_ID, authMethod: 'bearer_session' };
+  }
+
+  return authenticateRequest(request);
+}
+

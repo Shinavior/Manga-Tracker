@@ -1,0 +1,35 @@
+name: Scheduled Background Jobs
+
+on:
+  schedule:
+    # 03:00 UTC daily: 30-day chapter purge
+    - cron: '0 3 * * *'
+    # 04:00 UTC daily: Active series update check
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+jobs:
+  cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger 30-day Retention Purge
+        if: github.event.schedule == '0 3 * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          if [ -n "${{ secrets.APP_URL }}" ]; then
+            curl -X POST "${{ secrets.APP_URL }}/api/cron/purge" \
+              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+              -H "Content-Type: application/json"
+          else
+            echo "No APP_URL configured, skipping remote purge webhook."
+          fi
+
+      - name: Trigger Update Check
+        if: github.event.schedule == '0 4 * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          if [ -n "${{ secrets.APP_URL }}" ]; then
+            curl -X POST "${{ secrets.APP_URL }}/api/cron/check-updates" \
+              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+              -H "Content-Type: application/json"
+          else
+            echo "No APP_URL configured, skipping remote check-updates webhook."
+          fi

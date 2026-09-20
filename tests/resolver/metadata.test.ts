@@ -27,6 +27,12 @@ describe('Phase 4: Metadata Scraping & SSRF Protection', () => {
       expect(cleanScrapedTitle('Chainsaw Man ตอนที่ 150 - Nekopost')).toBe('Chainsaw Man');
       expect(cleanScrapedTitle('Frieren: Beyond Journey\'s End | MangaDex')).toBe("Frieren: Beyond Journey's End");
       expect(cleanScrapedTitle('One Piece Ch. 1100')).toBe('One Piece');
+      expect(
+        cleanScrapedTitle('อ่านมังงะ The Delusional Hunter in Another World ตอนที่ 1 แปลไทย | Dark-Manga')
+      ).toBe('The Delusional Hunter in Another World');
+      expect(
+        cleanScrapedTitle('รักสุดใจจนอยากครอบครองไว้คนเดียว - Chapter 1 | Nekopost')
+      ).toBe('รักสุดใจจนอยากครอบครองไว้คนเดียว');
     });
 
     it('preserves real subtitle hyphens', () => {

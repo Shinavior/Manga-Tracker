@@ -1,6 +1,12 @@
 import { ApiTokenRecord, ChapterRecord, SaveResult, SeriesRecord, UndoTokenRecord } from './types';
 import { ResolveResult } from '../resolver/types';
+import { resolve } from '../resolver';
+import { MangaDexAdapter } from '../resolver/adapters/mangadex';
+import { GenericNumericAdapter } from '../resolver/adapters/generic-numeric';
 import { createHash, randomBytes, randomUUID } from 'crypto';
+
+const mangadexAdapter = new MangaDexAdapter();
+const genericAdapter = new GenericNumericAdapter();
 
 // Global in-memory persistent store (shared across route invocations in dev/single-user)
 const globalStore = globalThis as unknown as {
@@ -20,6 +26,12 @@ const chaptersDb = globalStore.__mangaChapters;
 const undoTokensDb = globalStore.__mangaUndoTokens;
 const apiTokensDb = globalStore.__mangaApiTokens;
 
+export function normalizeSeriesKey(key: string): string {
+  return key
+    .replace(/-(?:ตอนที่|ตอน|บทที่|chapter|ch|ep)-?\{ch\}/gi, '-{ch}')
+    .replace(/_(?:ตอนที่|ตอน|บทที่|chapter|ch|ep)_?\{ch\}/gi, '_{ch}');
+}
+
 export class DataStore {
   // Clear all data (useful for test isolation)
   static clearAll() {
@@ -31,8 +43,16 @@ export class DataStore {
 
   // Find existing series by (userId, seriesKey)
   static findSeriesByKey(userId: string, seriesKey: string): SeriesRecord | undefined {
+    // 1. Exact match
     for (const s of seriesDb.values()) {
       if (s.userId === userId && s.seriesKey === seriesKey) {
+        return s;
+      }
+    }
+    // 2. Normalized match (handles sites switching between -ep-, -ch-, -ตอนที่-)
+    const normKey = normalizeSeriesKey(seriesKey);
+    for (const s of seriesDb.values()) {
+      if (s.userId === userId && normalizeSeriesKey(s.seriesKey) === normKey) {
         return s;
       }
     }
@@ -257,6 +277,10 @@ export class DataStore {
       } else if (existingSeries.status === 'read' || existingSeries.status === 'waiting') {
         // Automatic transition: newer save resets read/waiting back to unread
         existingSeries.status = 'unread';
+      }
+      if (resolveResult.urlPattern) {
+        existingSeries.urlPattern = resolveResult.urlPattern;
+        existingSeries.seriesKey = resolveResult.seriesKey;
       }
       existingSeries.hasUpdate = false;
       existingSeries.nextChapterUrl = null;
@@ -690,6 +714,16 @@ export class DataStore {
         chaptersDb.set(ch.id, ch);
       }
       target.currentChapterId = bestCurrent.id;
+
+      // If best chapter came from source, inherit source's URL pattern and seriesKey
+      if (bestCurrent.seriesId === sourceSeriesId) {
+        if (source.urlPattern) target.urlPattern = source.urlPattern;
+        if (source.seriesKey) target.seriesKey = source.seriesKey;
+      }
+
+      // Reset next chapter cache since current chapter has changed
+      target.nextChapterUrl = null;
+      target.hasUpdate = false;
     }
 
     // 4. Fill missing metadata if target was missing cover or title
@@ -736,4 +770,412 @@ export class DataStore {
 
     return matches.slice(0, 5);
   }
+
+  // ================= Automated Purge & Cron =================
+
+  // Purge expired chapters from the database (Spec Section 5)
+  static purgeExpiredChapters(now = new Date()): { purgedCount: number; chapterIds: string[] } {
+    const deleted: string[] = [];
+
+    for (const [chId, ch] of Array.from(chaptersDb.entries())) {
+      // Purge criteria: not current chapter, has archivedAt, has purgeAt, purgeAt <= now
+      if (!ch.isCurrent && ch.archivedAt && ch.purgeAt && ch.purgeAt.getTime() <= now.getTime()) {
+        chaptersDb.delete(chId);
+        deleted.push(chId);
+      }
+    }
+
+    return {
+      purgedCount: deleted.length,
+      chapterIds: deleted,
+    };
+  }
+
+  // ================= Update Checking Worker =================
+
+  // Check active series for new chapters
+  static async checkSeriesUpdates(
+    userId: string,
+    limit = 50
+  ): Promise<{
+    checkedCount: number;
+    updatedCount: number;
+    results: Array<{ seriesId: string; title: string; nextUrl: string | null; updated: boolean }>;
+  }> {
+    const activeSeries: SeriesRecord[] = [];
+    for (const s of seriesDb.values()) {
+      if (s.userId === userId && s.status !== 'dropped' && s.status !== 'paused') {
+        activeSeries.push(s);
+      }
+    }
+
+    // Sort by lastCheckedAt ascending (nulls first) to prioritize series not checked recently
+    activeSeries.sort((a, b) => {
+      const timeA = a.lastCheckedAt ? a.lastCheckedAt.getTime() : 0;
+      const timeB = b.lastCheckedAt ? b.lastCheckedAt.getTime() : 0;
+      return timeA - timeB;
+    });
+
+    const targetSeries = activeSeries.slice(0, limit);
+    let updatedCount = 0;
+    const results: Array<{ seriesId: string; title: string; nextUrl: string | null; updated: boolean }> = [];
+
+    for (const series of targetSeries) {
+      const title = series.customTitle || series.autoTitle || 'Untitled Series';
+      const currentChapter = series.currentChapterId ? chaptersDb.get(series.currentChapterId) : undefined;
+      const currentChapterNumber = currentChapter?.chapterNumber ?? undefined;
+
+      let nextUrl: string | null = null;
+      let checkSucceeded = false;
+
+      try {
+        if (series.source === 'mangadex') {
+          nextUrl = await mangadexAdapter.nextChapterUrl({
+            seriesKey: series.seriesKey,
+            currentUrl: currentChapter?.url || '',
+            currentChapterNumber,
+            language: series.language || 'en',
+          });
+          checkSucceeded = true;
+        } else if (series.urlPattern) {
+          nextUrl = await genericAdapter.nextChapterUrl({
+            seriesKey: series.seriesKey,
+            currentUrl: currentChapter?.url || '',
+            currentChapterNumber,
+            urlPattern: series.urlPattern,
+          });
+          checkSucceeded = true;
+        } else {
+          // Unsupported adapter / no pattern
+          checkSucceeded = true;
+        }
+      } catch {
+        checkSucceeded = false;
+      }
+
+      series.lastCheckedAt = new Date();
+      if (checkSucceeded) {
+        if (nextUrl) {
+          series.nextChapterUrl = nextUrl;
+          series.hasUpdate = true;
+          updatedCount++;
+          results.push({ seriesId: series.id, title, nextUrl, updated: true });
+        } else {
+          series.hasUpdate = false;
+          series.nextChapterUrl = null;
+          results.push({ seriesId: series.id, title, nextUrl: null, updated: false });
+        }
+      } else {
+        // On check failure / network timeout, do NOT wipe out existing hasUpdate or nextChapterUrl
+        results.push({
+          seriesId: series.id,
+          title,
+          nextUrl: series.nextChapterUrl || null,
+          updated: Boolean(series.hasUpdate),
+        });
+      }
+      seriesDb.set(series.id, series);
+    }
+
+    return {
+      checkedCount: targetSeries.length,
+      updatedCount,
+      results,
+    };
+  }
+
+  // ================= Import & Export Engine =================
+
+  // Full JSON export of user's series and chapters
+  static exportData(userId: string): {
+    version: number;
+    exportedAt: string;
+    series: Array<SeriesRecord & { chapters: ChapterRecord[] }>;
+  } {
+    const userSeries = Array.from(seriesDb.values()).filter((s) => s.userId === userId);
+    const seriesWithChapters = userSeries.map((s) => ({
+      ...s,
+      chapters: DataStore.getChaptersForSeries(s.id),
+    }));
+
+    return {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      series: seriesWithChapters,
+    };
+  }
+
+  // Restore full backup JSON directly into storage without outbound network calls
+  static restoreBackup(
+    userId: string,
+    backupData: {
+      version: number;
+      series: Array<
+        SeriesRecord & {
+          chapters?: ChapterRecord[];
+        }
+      >;
+    },
+    dryRun = false
+  ): {
+    dryRun: boolean;
+    totalItems: number;
+    seriesCount: number;
+    chaptersCount: number;
+    newSeriesCount: number;
+    existingSeriesCount: number;
+    savedCount?: number;
+    preview?: Array<{
+      url: string;
+      seriesKey: string;
+      seriesTitle: string;
+      chapterLabel: string;
+      isNewSeries: boolean;
+      existingSeriesId?: string;
+    }>;
+  } {
+    const preview: Array<{
+      url: string;
+      seriesKey: string;
+      seriesTitle: string;
+      chapterLabel: string;
+      isNewSeries: boolean;
+      existingSeriesId?: string;
+    }> = [];
+
+    let newSeriesCount = 0;
+    let existingSeriesCount = 0;
+    let chaptersCount = 0;
+
+    const seriesList = backupData.series || [];
+
+    for (const s of seriesList) {
+      const existing = DataStore.findSeriesByKey(userId, s.seriesKey);
+      const isNew = !existing;
+      if (isNew) {
+        newSeriesCount++;
+      } else {
+        existingSeriesCount++;
+      }
+
+      const incomingChapters = s.chapters || [];
+      const currentCh = incomingChapters.find((c) => c.isCurrent) || incomingChapters[0];
+
+      preview.push({
+        url: currentCh?.url || '',
+        seriesKey: s.seriesKey,
+        seriesTitle: s.customTitle || s.autoTitle || 'Untitled Series',
+        chapterLabel: currentCh ? `${currentCh.chapterLabel} (${incomingChapters.length} ch)` : `${incomingChapters.length} ch`,
+        isNewSeries: isNew,
+        existingSeriesId: existing?.id,
+      });
+
+      if (!dryRun) {
+        const targetSeriesId = existing?.id || s.id || randomUUID();
+        const targetSeries: SeriesRecord = {
+          id: targetSeriesId,
+          userId,
+          seriesKey: s.seriesKey,
+          source: s.source || 'generic',
+          urlPattern: s.urlPattern || null,
+          autoTitle: s.autoTitle || null,
+          customTitle: s.customTitle || existing?.customTitle || null,
+          coverUrl: s.coverUrl || existing?.coverUrl || null,
+          status: s.status || 'unread',
+          tags: Array.from(new Set([...(existing?.tags || []), ...(s.tags || [])])),
+          language: s.language || null,
+          currentChapterId: null,
+          confidence: s.confidence || 'high',
+          needsReview: s.needsReview || false,
+          lastReadAt: s.lastReadAt ? new Date(s.lastReadAt) : null,
+          lastCheckedAt: s.lastCheckedAt ? new Date(s.lastCheckedAt) : null,
+          hasUpdate: s.hasUpdate || false,
+          nextChapterUrl: s.nextChapterUrl || null,
+          createdAt: s.createdAt ? new Date(s.createdAt) : new Date(),
+          updatedAt: new Date(),
+        };
+
+        let activeCurrentChapterId: string | null = null;
+        for (const ch of incomingChapters) {
+          let existingCh: ChapterRecord | undefined;
+          for (const c of chaptersDb.values()) {
+            if (c.seriesId === targetSeriesId && c.url === ch.url) {
+              existingCh = c;
+              break;
+            }
+          }
+
+          const chId = existingCh?.id || ch.id || randomUUID();
+          const chRecord: ChapterRecord = {
+            id: chId,
+            seriesId: targetSeriesId,
+            url: ch.url,
+            chapterLabel: ch.chapterLabel,
+            chapterNumber: ch.chapterNumber ?? null,
+            isCurrent: Boolean(ch.isCurrent),
+            archivedAt: ch.archivedAt ? new Date(ch.archivedAt) : null,
+            purgeAt: ch.purgeAt ? new Date(ch.purgeAt) : null,
+            restoredCount: ch.restoredCount || 0,
+            savedAt: ch.savedAt ? new Date(ch.savedAt) : new Date(),
+          };
+
+          chaptersDb.set(chId, chRecord);
+          chaptersCount++;
+
+          if (chRecord.isCurrent) {
+            activeCurrentChapterId = chId;
+          }
+        }
+
+        if (!activeCurrentChapterId && incomingChapters.length > 0) {
+          const allChapters = DataStore.getChaptersForSeries(targetSeriesId);
+          if (allChapters.length > 0) {
+            allChapters[0].isCurrent = true;
+            activeCurrentChapterId = allChapters[0].id;
+            chaptersDb.set(allChapters[0].id, allChapters[0]);
+          }
+        }
+
+        targetSeries.currentChapterId = activeCurrentChapterId;
+        seriesDb.set(targetSeriesId, targetSeries);
+      }
+    }
+
+    return {
+      dryRun,
+      totalItems: seriesList.length,
+      seriesCount: seriesList.length,
+      chaptersCount: dryRun
+        ? seriesList.reduce((acc, s) => acc + (s.chapters?.length || 0), 0)
+        : chaptersCount,
+      newSeriesCount,
+      existingSeriesCount,
+      preview,
+      savedCount: chaptersCount,
+    };
+  }
+
+  // Import items with dry-run support, series deduplication, and ascending chapter ordering
+  static async importData(
+    userId: string,
+    items: Array<{
+      url: string;
+      customTitle?: string;
+      tags?: string[];
+      status?: SeriesRecord['status'];
+    }>,
+    dryRun = false
+  ): Promise<{
+    dryRun: boolean;
+    totalItems: number;
+    newSeriesCount: number;
+    existingSeriesCount: number;
+    preview?: Array<{
+      url: string;
+      seriesKey: string;
+      seriesTitle: string;
+      chapterLabel: string;
+      isNewSeries: boolean;
+      existingSeriesId?: string;
+    }>;
+    savedCount?: number;
+  }> {
+    const preview: Array<{
+      url: string;
+      seriesKey: string;
+      seriesTitle: string;
+      chapterLabel: string;
+      isNewSeries: boolean;
+      existingSeriesId?: string;
+    }> = [];
+
+    const seenSeriesKeys = new Set<string>();
+    let newSeriesCount = 0;
+    let existingSeriesCount = 0;
+    let savedCount = 0;
+
+    // Group items by seriesKey to sort chapters and ensure latest chapter is active
+    const groupedItems = new Map<
+      string,
+      Array<{
+        item: (typeof items)[0];
+        resolved: ResolveResult;
+        isNewSeries: boolean;
+        existingSeriesId?: string;
+      }>
+    >();
+
+    for (const item of items) {
+      if (!item.url || !/^https?:\/\//i.test(item.url)) continue;
+
+      try {
+        const resolved = await resolve(item.url);
+        const existing = DataStore.findSeriesByKey(userId, resolved.seriesKey);
+        const isNew = !existing;
+
+        if (!seenSeriesKeys.has(resolved.seriesKey)) {
+          seenSeriesKeys.add(resolved.seriesKey);
+          if (isNew) {
+            newSeriesCount++;
+          } else {
+            existingSeriesCount++;
+          }
+        }
+
+        const entry = {
+          item,
+          resolved,
+          isNewSeries: isNew,
+          existingSeriesId: existing?.id,
+        };
+
+        if (!groupedItems.has(resolved.seriesKey)) {
+          groupedItems.set(resolved.seriesKey, []);
+        }
+        groupedItems.get(resolved.seriesKey)!.push(entry);
+
+        preview.push({
+          url: item.url,
+          seriesKey: resolved.seriesKey,
+          seriesTitle: item.customTitle || resolved.seriesTitle || 'Unknown Title',
+          chapterLabel: resolved.chapterLabel,
+          isNewSeries: isNew,
+          existingSeriesId: existing?.id,
+        });
+      } catch {
+        // Skip unresolvable items during bulk import
+      }
+    }
+
+    if (!dryRun) {
+      // Process each series in ascending chapter order so highest chapter is preserved as current
+      for (const [, entries] of groupedItems.entries()) {
+        entries.sort((a, b) => {
+          const numA = a.resolved.chapterNumber ?? -Infinity;
+          const numB = b.resolved.chapterNumber ?? -Infinity;
+          return numA - numB;
+        });
+
+        for (const { item, resolved } of entries) {
+          await DataStore.saveChapter({
+            userId,
+            resolveResult: resolved,
+            customTitle: item.customTitle,
+            tags: item.tags,
+            statusOverride: item.status,
+          });
+          savedCount++;
+        }
+      }
+    }
+
+    return {
+      dryRun,
+      totalItems: items.length,
+      newSeriesCount,
+      existingSeriesCount,
+      ...(dryRun ? { preview } : { savedCount }),
+    };
+  }
 }
+

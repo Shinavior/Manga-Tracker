@@ -12,8 +12,11 @@ import {
   AlertTriangle,
   Loader2,
   Sparkles,
+  CheckSquare,
+  Square,
 } from 'lucide-react';
 import { STATUS_CONFIG } from './filter-bar';
+import { usePreferences } from '@/lib/preferences-context';
 
 export interface SeriesCardData {
   id: string;
@@ -42,21 +45,37 @@ interface SeriesCardProps {
   series: SeriesCardData;
   onUpdate: (updated: SeriesCardData) => void;
   onDelete: (id: string) => void;
+  isSelectMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
 }
 
-function timeAgo(dateString: string): string {
-  const diff = Date.now() - new Date(dateString).getTime();
-  const minutes = Math.floor(diff / (1000 * 60));
-  if (minutes < 1) return 'Just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  return new Date(dateString).toLocaleDateString();
+function getDomainName(urlStr?: string | null, seriesKey?: string): string | null {
+  if (urlStr) {
+    try {
+      const parsed = new URL(urlStr);
+      return parsed.hostname.toLowerCase().replace(/^www\./, '');
+    } catch {}
+  }
+  if (seriesKey) {
+    if (seriesKey.startsWith('mangadex')) return 'mangadex.org';
+    const parts = seriesKey.split(':');
+    if (parts.length > 1 && parts[1].includes('.')) return parts[1].toLowerCase().replace(/^www\./, '');
+    const slashPart = seriesKey.split('/')[0];
+    if (slashPart.includes('.')) return slashPart.toLowerCase().replace(/^www\./, '');
+  }
+  return null;
 }
 
-export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
+export function SeriesCard({
+  series,
+  onUpdate,
+  onDelete,
+  isSelectMode,
+  isSelected,
+  onToggleSelect,
+}: SeriesCardProps) {
+  const { t } = usePreferences();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(series.title);
@@ -73,13 +92,25 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
   const [isMerging, setIsMerging] = useState(false);
 
   const statusConfig = STATUS_CONFIG[series.status] || STATUS_CONFIG.unread;
+  const domain = getDomainName(series.currentChapter?.url, series.seriesKey);
+
+  const formatRelativeTime = (dateString: string): string => {
+    const diff = Date.now() - new Date(dateString).getTime();
+    const minutes = Math.floor(diff / (1000 * 60));
+    if (minutes < 1) return t('justNow');
+    if (minutes < 60) return t('minutesAgo', { m: minutes });
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return t('hoursAgo', { h: hours });
+    const days = Math.floor(hours / 24);
+    if (days < 30) return t('daysAgo', { d: days });
+    return new Date(dateString).toLocaleDateString();
+  };
 
   const handleOpenMergeModal = async () => {
     setIsMenuOpen(false);
     setIsMergeModalOpen(true);
     setLoadingSuggestions(true);
     try {
-      // 1. Fetch suggestions
       const [sugRes, allRes] = await Promise.all([
         fetch(`/api/series/${series.id}/merge`),
         fetch('/api/series?limit=100'),
@@ -126,7 +157,7 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
       } else {
         alert(data.message || 'Failed to merge series');
       }
-    } catch (err) {
+    } catch {
       alert('Error during series merge');
     } finally {
       setIsMerging(false);
@@ -136,10 +167,8 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
   const handleContinue = async () => {
     if (!series.currentChapter?.url) return;
 
-    // Open chapter in new tab
     window.open(series.currentChapter.url, '_blank', 'noopener,noreferrer');
 
-    // Optimistic reading status update
     try {
       const res = await fetch(`/api/series/${series.id}/read`, { method: 'POST' });
       if (res.ok) {
@@ -156,13 +185,16 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
   const handleNext = async () => {
     if (isLoadingNext) return;
 
-    // If nextChapterUrl is already known, open directly
-    if (series.nextChapterUrl) {
+    const cachedMatch = series.nextChapterUrl?.match(/(?:-|_|\/)(?:ตอนที่|ตอน|บทที่|chapter|ch|ep)?-?(\d+(?:\.\d+)?)\/?$/i);
+    const isCachedValid = cachedMatch && series.currentChapter?.number != null
+      ? parseFloat(cachedMatch[1]) > series.currentChapter.number
+      : Boolean(series.nextChapterUrl);
+
+    if (series.nextChapterUrl && isCachedValid) {
       window.open(series.nextChapterUrl, '_blank', 'noopener,noreferrer');
       return;
     }
 
-    // Otherwise probe /api/series/:id/next
     setIsLoadingNext(true);
     setNextFeedback(null);
 
@@ -178,7 +210,12 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
         });
         window.open(data.url, '_blank', 'noopener,noreferrer');
       } else {
-        setNextFeedback('Caught up');
+        onUpdate({
+          ...series,
+          nextChapterUrl: null,
+          hasUpdate: false,
+        });
+        setNextFeedback(t('caughtUp'));
         setTimeout(() => setNextFeedback(null), 3000);
       }
     } catch {
@@ -236,7 +273,7 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
 
   const handleDelete = async () => {
     setIsMenuOpen(false);
-    if (!window.confirm(`Are you sure you want to delete "${series.title}"?`)) return;
+    if (!window.confirm(`${t('confirmDeleteSingleTitle')} "${series.title}"`)) return;
     try {
       const res = await fetch(`/api/series/${series.id}`, { method: 'DELETE' });
       if (res.ok) {
@@ -249,14 +286,25 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
 
   return (
     <div
-      className={`group relative flex flex-col justify-between overflow-visible rounded-2xl border bg-card p-4 transition-all duration-200 hover:border-purple-500/40 hover:shadow-xl hover:shadow-purple-950/20 ${
-        series.needsReview ? 'border-l-4 border-l-amber-500 border-border' : 'border-border'
+      onClick={() => {
+        if (isSelectMode && onToggleSelect) {
+          onToggleSelect();
+        }
+      }}
+      className={`group relative flex flex-col justify-between overflow-visible rounded-2xl border bg-card p-4 transition-all duration-200 shadow-sm hover:shadow-xl ${
+        isSelectMode ? 'cursor-pointer select-none' : ''
+      } ${
+        isSelected
+          ? 'ring-2 ring-purple-600 border-purple-500 bg-purple-500/10 dark:bg-purple-950/20 shadow-purple-500/10'
+          : series.needsReview
+          ? 'border-l-4 border-l-amber-500 border-border hover:border-purple-500/40'
+          : 'border-border hover:border-purple-500/40'
       }`}
     >
       <div>
         {/* Top Info Header */}
         <div className="flex items-start gap-3.5">
-          {/* Cover Art */}
+          {/* Cover Art with Select Checkbox */}
           <div className="relative h-24 w-18 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-background/80 shadow-md">
             {series.coverUrl ? (
               <img
@@ -265,10 +313,25 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
             ) : (
-              <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-purple-950/40 to-slate-900 p-1 text-center">
-                <span className="text-lg font-bold text-purple-400/80">
+              <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-purple-500/20 to-indigo-500/20 p-1 text-center">
+                <span className="text-lg font-bold text-purple-600 dark:text-purple-400">
                   {series.title.charAt(0).toUpperCase()}
                 </span>
+              </div>
+            )}
+
+            {/* Selection Checkbox Overlay */}
+            {isSelectMode && (
+              <div className="absolute top-1 left-1 z-10">
+                <div
+                  className={`h-5 w-5 rounded-md flex items-center justify-center transition-colors ${
+                    isSelected
+                      ? 'bg-purple-600 text-white shadow-sm'
+                      : 'bg-black/60 text-white/70 backdrop-blur-sm border border-white/30 hover:bg-purple-600'
+                  }`}
+                >
+                  {isSelected ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
+                </div>
               </div>
             )}
           </div>
@@ -276,8 +339,8 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
           {/* Series details */}
           <div className="flex-1 min-w-0">
             {/* Title / Edit inline */}
-            {isEditingTitle ? (
-              <div className="flex items-center gap-1.5 mb-1">
+            {isEditingTitle && !isSelectMode ? (
+              <div className="flex items-center gap-1.5 mb-1" onClick={(e) => e.stopPropagation()}>
                 <input
                   type="text"
                   value={titleDraft}
@@ -289,13 +352,13 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
                       setIsEditingTitle(false);
                     }
                   }}
-                  className="w-full rounded-lg border border-purple-500 bg-background px-2 py-0.5 text-sm font-semibold text-white focus:outline-none"
+                  className="w-full rounded-lg border border-purple-500 bg-background px-2 py-0.5 text-sm font-semibold text-foreground focus:outline-none"
                   autoFocus
                 />
                 <button
                   onClick={handleSaveTitle}
                   disabled={isSubmitting}
-                  className="rounded p-1 text-emerald-400 hover:bg-emerald-500/10"
+                  className="rounded p-1 text-emerald-500 hover:bg-emerald-500/10"
                 >
                   <Check className="h-4 w-4" />
                 </button>
@@ -304,7 +367,7 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
                     setTitleDraft(series.title);
                     setIsEditingTitle(false);
                   }}
-                  className="rounded p-1 text-gray-400 hover:bg-gray-800"
+                  className="rounded p-1 text-gray-400 hover:bg-card-hover"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -312,99 +375,114 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
             ) : (
               <div className="flex items-start justify-between gap-1">
                 <h3
-                  onClick={() => setIsEditingTitle(true)}
-                  className="font-bold text-white text-base leading-tight truncate cursor-pointer hover:text-purple-300 transition-colors"
-                  title="Click to rename"
+                  onClick={(e) => {
+                    if (!isSelectMode) {
+                      e.stopPropagation();
+                      setIsEditingTitle(true);
+                    }
+                  }}
+                  className="font-bold text-foreground text-base leading-tight truncate hover:text-purple-600 dark:hover:text-purple-300 transition-colors cursor-pointer"
+                  title={isSelectMode ? '' : t('editTitle')}
                 >
                   {series.title}
                 </h3>
 
                 {/* ⋯ Options Menu */}
-                <div className="relative shrink-0">
-                  <button
-                    onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    className="rounded-lg p-1 text-gray-400 hover:bg-card-hover hover:text-white"
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </button>
+                {!isSelectMode && (
+                  <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => setIsMenuOpen(!isMenuOpen)}
+                      className="rounded-lg p-1 text-gray-400 hover:bg-card-hover hover:text-foreground"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </button>
 
-                  {isMenuOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-20"
-                        onClick={() => setIsMenuOpen(false)}
-                      />
-                      <div className="absolute right-0 top-full z-30 mt-1 w-48 rounded-xl border border-zinc-700 bg-zinc-900/95 p-1.5 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-100 divide-y divide-zinc-800/60">
-                        <div className="py-1">
-                          <button
-                            onClick={() => {
-                              setIsMenuOpen(false);
-                              setIsEditingTitle(true);
-                            }}
-                            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 hover:bg-zinc-800"
-                          >
-                            <Edit2 className="h-3.5 w-3.5 text-zinc-400" />
-                            <span>Rename Series</span>
-                          </button>
-                        </div>
-
-                        <div className="py-1">
-                          <div className="px-2.5 py-1 text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
-                            Change Status
-                          </div>
-                          {['unread', 'reading', 'read', 'waiting', 'paused', 'dropped'].map((st) => (
+                    {isMenuOpen && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-20"
+                          onClick={() => setIsMenuOpen(false)}
+                        />
+                        <div className="absolute right-0 top-full z-30 mt-1 w-48 rounded-xl border border-border bg-card p-1.5 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-100 divide-y divide-border/60">
+                          <div className="py-1">
                             <button
-                              key={st}
-                              onClick={() => handleStatusChange(st)}
-                              className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1 text-xs capitalize ${
-                                series.status === st
-                                  ? 'bg-purple-600/20 text-purple-300 font-medium'
-                                  : 'text-zinc-300 hover:bg-zinc-800'
-                              }`}
+                              onClick={() => {
+                                setIsMenuOpen(false);
+                                setIsEditingTitle(true);
+                              }}
+                              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-foreground hover:bg-card-hover"
                             >
-                              <span>{st}</span>
-                              {series.status === st && <Check className="h-3 w-3" />}
+                              <Edit2 className="h-3.5 w-3.5 text-gray-400" />
+                              <span>{t('editTitle')}</span>
                             </button>
-                          ))}
-                        </div>
+                          </div>
 
-                        <div className="py-1">
-                          <button
-                            onClick={handleOpenMergeModal}
-                            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-indigo-300 hover:bg-indigo-950/40 font-medium"
-                          >
-                            <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
-                            <span>Merge Series...</span>
-                          </button>
-                        </div>
+                          <div className="py-1">
+                            <div className="px-2.5 py-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                              Status
+                            </div>
+                            {['unread', 'reading', 'read', 'waiting', 'paused', 'dropped'].map((st) => (
+                              <button
+                                key={st}
+                                onClick={() => handleStatusChange(st)}
+                                className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1 text-xs capitalize ${
+                                  series.status === st
+                                    ? 'bg-purple-600/15 text-purple-600 dark:text-purple-300 font-medium'
+                                    : 'text-foreground hover:bg-card-hover'
+                                }`}
+                              >
+                                <span>{t(STATUS_CONFIG[st]?.labelKey || 'statusAll')}</span>
+                                {series.status === st && <Check className="h-3 w-3" />}
+                              </button>
+                            ))}
+                          </div>
 
-                        <div className="pt-1">
-                          <button
-                            onClick={handleDelete}
-                            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-rose-400 hover:bg-rose-950/30 font-medium"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            <span>Delete Series</span>
-                          </button>
+                          <div className="py-1">
+                            <button
+                              onClick={handleOpenMergeModal}
+                              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/10 font-medium"
+                            >
+                              <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
+                              <span>{t('mergeWith')}</span>
+                            </button>
+                          </div>
+
+                          <div className="pt-1">
+                            <button
+                              onClick={handleDelete}
+                              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 font-medium"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              <span>{t('deleteSeries')}</span>
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    </>
-                  )}
-                </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Current Chapter & Source */}
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-400">
-              <span className="font-semibold text-purple-300">
+            {/* Current Chapter & Source & Domain */}
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+              <span className="font-semibold text-purple-600 dark:text-purple-300">
                 {series.currentChapter?.label || 'No chapters'}
               </span>
               <span>•</span>
-              <span className="rounded bg-gray-800/80 px-1.5 py-0.5 text-[10px] font-mono text-gray-300">
+              <span className="rounded bg-black/5 dark:bg-gray-800/80 px-1.5 py-0.5 text-[10px] font-mono text-foreground">
                 {series.source}
               </span>
+              {domain && (
+                <>
+                  <span>•</span>
+                  <span className="rounded bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 text-[10px] font-mono text-indigo-600 dark:text-indigo-300">
+                    {domain}
+                  </span>
+                </>
+              )}
               <span>•</span>
-              <span className="text-[11px] text-gray-500">{timeAgo(series.updatedAt)}</span>
+              <span className="text-[11px] text-gray-400">{formatRelativeTime(series.updatedAt)}</span>
             </div>
 
             {/* Status & Badges */}
@@ -413,27 +491,27 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
                 className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${statusConfig.bg} ${statusConfig.color}`}
               >
                 <span>●</span>
-                <span className="capitalize">{series.status}</span>
+                <span className="capitalize">{t(statusConfig.labelKey)}</span>
               </span>
 
               {series.hasUpdate && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-400 border border-emerald-500/20">
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                   <Sparkles className="h-3 w-3" />
-                  <span>New</span>
+                  <span>{t('newUpdateBadge')}</span>
                 </span>
               )}
 
               {series.needsReview && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-400 border border-amber-500/20">
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400 border border-amber-500/20">
                   <AlertTriangle className="h-3 w-3" />
-                  <span>Verify</span>
+                  <span>{t('needsReviewBadge')}</span>
                 </span>
               )}
 
               {series.tags.map((t) => (
                 <span
                   key={t}
-                  className="rounded-md bg-border/40 px-1.5 py-0.5 text-[10px] text-gray-400"
+                  className="rounded-md bg-border/60 px-1.5 py-0.5 text-[10px] text-gray-500 dark:text-gray-400"
                 >
                   #{t}
                 </span>
@@ -444,83 +522,86 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
       </div>
 
       {/* Action Buttons */}
-      <div className="mt-4 flex items-center gap-2 border-t border-border/40 pt-3">
-        <button
-          onClick={handleContinue}
-          disabled={!series.currentChapter?.url}
-          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-purple-600/90 py-2 text-xs font-semibold text-white shadow-md shadow-purple-900/20 transition-all hover:bg-purple-600 hover:shadow-purple-700/30 disabled:opacity-40"
-        >
-          <span>Continue</span>
-          <ExternalLink className="h-3.5 w-3.5" />
-        </button>
+      {!isSelectMode && (
+        <div className="mt-4 flex items-center gap-2 border-t border-border/60 pt-3" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={handleContinue}
+            disabled={!series.currentChapter?.url}
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-purple-600 py-2 text-xs font-semibold text-white shadow-md shadow-purple-600/20 transition-all hover:bg-purple-500 disabled:opacity-40"
+          >
+            <span>{t('continueReading')}</span>
+            <ExternalLink className="h-3.5 w-3.5" />
+          </button>
 
-        <button
-          onClick={handleNext}
-          disabled={!series.currentChapter?.url || isLoadingNext}
-          className={`flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-medium transition-all ${
-            series.hasUpdate || series.nextChapterUrl
-              ? 'border-purple-500/40 bg-purple-950/30 text-purple-300 hover:bg-purple-900/40'
-              : 'border-border/80 bg-card-hover text-gray-300 hover:bg-border hover:text-white'
-          } disabled:opacity-50`}
-          title="Check or open next chapter"
-        >
-          {isLoadingNext ? (
-            <>
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-purple-400" />
-              <span>Checking...</span>
-            </>
-          ) : nextFeedback ? (
-            <span className="text-gray-400">{nextFeedback}</span>
-          ) : (
-            <>
-              <span>Next</span>
-              <ChevronRight className="h-3.5 w-3.5" />
-            </>
-          )}
-        </button>
-      </div>
+          <button
+            onClick={handleNext}
+            disabled={!series.currentChapter?.url || isLoadingNext}
+            className={`flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-medium transition-all ${
+              series.hasUpdate || series.nextChapterUrl
+                ? 'border-purple-500/40 bg-purple-500/10 text-purple-600 dark:text-purple-300 hover:bg-purple-500/20'
+                : 'border-border bg-card-hover text-foreground hover:border-purple-500/30'
+            } disabled:opacity-50`}
+            title="Check or open next chapter"
+          >
+            {isLoadingNext ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-purple-500" />
+                <span>{t('checkingNext')}</span>
+              </>
+            ) : nextFeedback ? (
+              <span className="text-gray-400">{nextFeedback}</span>
+            ) : (
+              <>
+                <span>{t('nextChapter')}</span>
+                <ChevronRight className="h-3.5 w-3.5" />
+              </>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Merge Series Dialog Modal */}
       {isMergeModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-4 text-left">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-indigo-400" />
-                Merge Series
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="w-full max-w-md bg-card border border-border rounded-2xl p-6 shadow-2xl space-y-4 text-left">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-indigo-500" />
+                {t('mergeTitle')}
               </h3>
               <button
                 onClick={() => setIsMergeModalOpen(false)}
-                className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800"
+                className="p-1 rounded-lg text-gray-400 hover:text-foreground hover:bg-card-hover"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-zinc-400 leading-relaxed">
-              Combine another series entry into <strong>{series.title}</strong>. All chapter reading history and tags will be united under this card.
+            <p className="text-xs text-gray-500 dark:text-zinc-400 leading-relaxed">
+              {t('mergeDesc')}
             </p>
 
             <div className="space-y-3">
-              <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider">
-                Select series to merge in:
-              </label>
-
               {loadingSuggestions ? (
-                <div className="text-xs text-zinc-500 py-4 text-center">Loading library series...</div>
+                <div className="text-xs text-gray-500 py-4 text-center">Loading...</div>
               ) : (
                 <div className="space-y-3">
                   {mergeSuggestions.length > 0 && (
                     <div className="space-y-1.5">
-                      <div className="text-[11px] font-semibold text-indigo-400">✨ Smart Suggestions (Similar Titles):</div>
+                      <div className="text-[11px] font-semibold text-indigo-500">
+                        {t('suggestedMatches')}
+                      </div>
                       <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
                         {mergeSuggestions.map((sug) => (
                           <label
                             key={sug.id}
                             className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
                               selectedMergeId === sug.id
-                                ? 'bg-indigo-950/40 border-indigo-500 text-white'
-                                : 'bg-zinc-950/60 border-zinc-800 text-zinc-300 hover:border-zinc-700'
+                                ? 'bg-indigo-500/10 border-indigo-500 text-foreground'
+                                : 'bg-background border-border text-gray-600 dark:text-zinc-300 hover:border-purple-500/30'
                             }`}
                           >
                             <input
@@ -535,7 +616,7 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
                               <img
                                 src={sug.coverUrl}
                                 alt={sug.title}
-                                className="w-8 h-10 object-cover rounded bg-zinc-800 border border-zinc-700 flex-shrink-0"
+                                className="w-8 h-10 object-cover rounded bg-background border border-border flex-shrink-0"
                               />
                             )}
                             <span className="text-xs font-medium truncate flex-1">{sug.title}</span>
@@ -547,20 +628,20 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
 
                   {/* Manual All Series Dropdown */}
                   <div className="space-y-1.5">
-                    <div className="text-[11px] font-semibold text-zinc-400">
-                      {mergeSuggestions.length > 0 ? 'Or choose any other series:' : 'Choose a series from your library:'}
+                    <div className="text-[11px] font-semibold text-gray-500">
+                      {t('orSelectManually')}
                     </div>
                     {allSeriesOptions.length === 0 ? (
-                      <div className="text-xs text-zinc-500 py-2 bg-zinc-950/60 rounded-xl p-3 border border-zinc-800 text-center">
-                        No other series found in your library to merge.
+                      <div className="text-xs text-gray-500 py-2 bg-background rounded-xl p-3 border border-border text-center">
+                        No other series found.
                       </div>
                     ) : (
                       <select
                         value={selectedMergeId}
                         onChange={(e) => setSelectedMergeId(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-700 text-white text-xs focus:outline-none focus:border-indigo-500"
+                        className="w-full px-3 py-2 rounded-xl bg-background border border-border text-foreground text-xs focus:outline-none focus:border-indigo-500"
                       >
-                        <option value="" disabled>-- Select a series --</option>
+                        <option value="" disabled>-- {t('selectTargetSeries')} --</option>
                         {allSeriesOptions.map((s) => (
                           <option key={s.id} value={s.id}>
                             {s.title}
@@ -573,13 +654,13 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
               )}
             </div>
 
-            <div className="flex gap-3 pt-3 border-t border-zinc-800">
+            <div className="flex gap-3 pt-3 border-t border-border">
               <button
                 type="button"
                 onClick={() => setIsMergeModalOpen(false)}
-                className="flex-1 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium transition-colors"
+                className="flex-1 py-2 rounded-xl bg-card-hover text-foreground text-xs font-medium transition-colors"
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 type="button"
@@ -587,7 +668,7 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
                 disabled={!selectedMergeId || isMerging}
                 className="flex-1 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold shadow-lg shadow-indigo-600/20 transition-colors"
               >
-                {isMerging ? 'Merging...' : 'Confirm Merge'}
+                {isMerging ? t('merging') : t('mergeButton')}
               </button>
             </div>
           </div>

@@ -11,10 +11,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: '#0b0b0f',
-        card: '#121218',
-        'card-hover': '#181822',
-        border: '#232330',
+        background: 'rgb(var(--background) / <alpha-value>)',
+        foreground: 'rgb(var(--foreground) / <alpha-value>)',
+        card: 'rgb(var(--card) / <alpha-value>)',
+        'card-hover': 'rgb(var(--card-hover) / <alpha-value>)',
+        border: 'rgb(var(--border) / <alpha-value>)',
         primary: {
           DEFAULT: '#7c3aed',
           hover: '#6d28d9',

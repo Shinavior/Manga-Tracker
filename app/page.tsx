@@ -5,15 +5,33 @@ import { AddMangaBar } from '@/components/add-manga-bar';
 import { FilterBar } from '@/components/filter-bar';
 import { SeriesCard, SeriesCardData } from '@/components/series-card';
 import { UndoToast, UndoToastData } from '@/components/undo-toast';
-import { BookOpen, Layers, Sparkles, RefreshCw } from 'lucide-react';
+import { UpdateCheckWidget } from '@/components/update-check-widget';
+import {
+  BookOpen,
+  RefreshCw,
+  CheckSquare,
+  Trash2,
+  X,
+  AlertTriangle,
+  Loader2,
+} from 'lucide-react';
+import { usePreferences } from '@/lib/preferences-context';
 
 export default function LibraryPage() {
+  const { t } = usePreferences();
   const [seriesList, setSeriesList] = useState<SeriesCardData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [sort, setSort] = useState('updated');
+  const [filterUpdatesOnly, setFilterUpdatesOnly] = useState(false);
   const [undoToast, setUndoToast] = useState<UndoToastData | null>(null);
+
+  // Multi-select state
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+  const [isDeletingBatch, setIsDeletingBatch] = useState(false);
 
   // Fetch series list from API
   const fetchSeries = useCallback(async () => {
@@ -89,37 +107,132 @@ export default function LibraryPage() {
   // Handle series deletion
   const handleDeleteSeries = (id: string) => {
     setSeriesList((prev) => prev.filter((s) => s.id !== id));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  };
+
+  // Toggle selection for a single series
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  // Filter by updates if active
+  const displayedSeries = React.useMemo(() => {
+    if (filterUpdatesOnly) {
+      return seriesList.filter((s) => s.hasUpdate);
+    }
+    return seriesList;
+  }, [seriesList, filterUpdatesOnly]);
+
+  // Select all displayed series
+  const handleSelectAll = () => {
+    const allDisplayedIds = displayedSeries.map((s) => s.id);
+    setSelectedIds(new Set(allDisplayedIds));
+  };
+
+  // Deselect all
+  const handleDeselectAll = () => {
+    setSelectedIds(new Set());
+  };
+
+  // Execute batch delete
+  const handleExecuteBatchDelete = async () => {
+    if (selectedIds.size === 0 || isDeletingBatch) return;
+
+    setIsDeletingBatch(true);
+    try {
+      const res = await fetch('/api/series/batch', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ seriesIds: Array.from(selectedIds) }),
+      });
+
+      if (res.ok) {
+        setIsConfirmDeleteOpen(false);
+        setIsSelectMode(false);
+        setSelectedIds(new Set());
+        fetchSeries();
+      } else {
+        alert('Failed to delete selected series');
+      }
+    } catch {
+      alert('Network error while deleting series');
+    } finally {
+      setIsDeletingBatch(false);
+    }
   };
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6 pb-24">
       {/* Top Banner & Quick Add Bar */}
       <section className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
-            <h1 className="text-2xl font-extrabold text-white tracking-tight sm:text-3xl flex items-center gap-2.5">
-              <span>My Manga Library</span>
-              <span className="rounded-full bg-purple-500/20 px-2.5 py-0.5 text-xs font-semibold text-purple-300 border border-purple-500/30">
+            <h1 className="text-2xl font-extrabold text-foreground tracking-tight sm:text-3xl flex items-center gap-2.5">
+              <span>{t('myLibraryTitle')}</span>
+              <span className="rounded-full bg-purple-500/20 px-2.5 py-0.5 text-xs font-semibold text-purple-600 dark:text-purple-300 border border-purple-500/30">
                 {seriesList.length}
               </span>
             </h1>
-            <p className="text-sm text-gray-400 mt-0.5">
-              Paste any chapter URL to automatically update or create series.
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              {t('librarySubtitle')}
             </p>
           </div>
 
-          <button
-            onClick={() => fetchSeries()}
-            className="flex items-center gap-1.5 self-start rounded-xl border border-border/70 bg-card/60 px-3 py-1.5 text-xs text-gray-300 hover:bg-card hover:text-white transition-colors"
-            title="Refresh Library"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
-          </button>
+          <div className="flex items-center gap-2 self-start">
+            {/* Select Mode Toggle Button */}
+            <button
+              onClick={() => {
+                if (isSelectMode) {
+                  setIsSelectMode(false);
+                  setSelectedIds(new Set());
+                } else {
+                  setIsSelectMode(true);
+                }
+              }}
+              className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all ${
+                isSelectMode
+                  ? 'border-purple-500 bg-purple-600 text-white shadow-md shadow-purple-600/20'
+                  : 'border-border bg-card text-foreground hover:bg-card-hover'
+              }`}
+            >
+              <CheckSquare className="h-3.5 w-3.5" />
+              <span>{isSelectMode ? t('cancelSelectMode') : t('selectMode')}</span>
+            </button>
+
+            {/* Refresh Library */}
+            <button
+              onClick={() => fetchSeries()}
+              className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-1.5 text-xs text-foreground hover:bg-card-hover transition-colors"
+              title={t('refresh')}
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin text-purple-500' : ''}`} />
+              <span>{t('refresh')}</span>
+            </button>
+          </div>
         </div>
 
-        {/* Ingestion Paste Bar */}
+        {/* Ingestion Paste Bar (Single / Bulk Mode) */}
         <AddMangaBar onSaveSuccess={handleSaveSuccess} />
+
+        {/* Active Series Update Check Widget */}
+        <UpdateCheckWidget
+          seriesList={seriesList}
+          onRefreshLibrary={fetchSeries}
+          filterUpdatesOnly={filterUpdatesOnly}
+          onToggleFilterUpdatesOnly={() => setFilterUpdatesOnly(!filterUpdatesOnly)}
+        />
       </section>
 
       {/* Filters & Search */}
@@ -146,31 +259,145 @@ export default function LibraryPage() {
               />
             ))}
           </div>
-        ) : seriesList.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-border/70 bg-card/30 py-16 px-4 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-500/10 text-purple-400 mb-3 border border-purple-500/20">
+        ) : displayedSeries.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-border/70 bg-card/40 py-16 px-4 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 mb-3 border border-purple-500/20">
               <BookOpen className="h-7 w-7" />
             </div>
-            <h3 className="text-base font-bold text-white">No series found</h3>
-            <p className="mt-1 text-xs text-gray-400 max-w-sm">
-              {search || selectedStatus !== 'all'
-                ? 'Try adjusting your search query or status filter.'
-                : 'Paste a chapter URL in the box above to start tracking your reading list.'}
+            <h3 className="text-base font-bold text-foreground">
+              {filterUpdatesOnly ? t('noUpdatesFound') : t('noSeriesFound')}
+            </h3>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 max-w-sm">
+              {filterUpdatesOnly
+                ? t('noUpdatesHint')
+                : search || selectedStatus !== 'all'
+                ? t('adjustFilterHint')
+                : t('noSeriesHint')}
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {seriesList.map((series) => (
+            {displayedSeries.map((series) => (
               <SeriesCard
                 key={series.id}
                 series={series}
                 onUpdate={handleUpdateSeries}
                 onDelete={handleDeleteSeries}
+                isSelectMode={isSelectMode}
+                isSelected={selectedIds.has(series.id)}
+                onToggleSelect={() => handleToggleSelect(series.id)}
               />
             ))}
           </div>
         )}
       </section>
+
+      {/* Floating Batch Action Bar (Appears when in select mode) */}
+      {isSelectMode && (
+        <div className="fixed bottom-6 inset-x-0 z-40 flex justify-center px-4 animate-in slide-in-from-bottom-4 fade-in duration-200">
+          <div className="flex items-center gap-2 sm:gap-4 rounded-2xl border border-border bg-card/95 px-4 py-3 shadow-2xl backdrop-blur-xl border-purple-500/30">
+            <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-foreground">
+              <span className="h-2 w-2 rounded-full bg-purple-500 animate-ping" />
+              <span>{t('selectedCount', { count: selectedIds.size })}</span>
+            </div>
+
+            <div className="h-4 w-px bg-border" />
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSelectAll}
+                className="rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-card-hover transition-colors"
+              >
+                {t('selectAll')}
+              </button>
+              {selectedIds.size > 0 && (
+                <button
+                  type="button"
+                  onClick={handleDeselectAll}
+                  className="rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-card-hover transition-colors"
+                >
+                  {t('deselectAll')}
+                </button>
+              )}
+            </div>
+
+            <div className="h-4 w-px bg-border" />
+
+            <button
+              type="button"
+              disabled={selectedIds.size === 0}
+              onClick={() => setIsConfirmDeleteOpen(true)}
+              className="flex items-center gap-1.5 rounded-xl bg-rose-600 px-4 py-1.5 text-xs font-semibold text-white shadow-lg shadow-rose-600/20 transition-all hover:bg-rose-500 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              <span>{t('deleteSelected')} ({selectedIds.size})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsSelectMode(false);
+                setSelectedIds(new Set());
+              }}
+              className="p-1.5 rounded-xl text-gray-400 hover:text-foreground hover:bg-card-hover"
+              title={t('cancelSelectMode')}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal for Bulk Delete */}
+      {isConfirmDeleteOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md bg-card border border-border rounded-2xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-rose-500">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/10 border border-rose-500/20">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-foreground">
+                  {t('confirmDeleteBulkTitle')}
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {t('confirmDeleteBulkDesc', { count: selectedIds.size })}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-3 border-t border-border">
+              <button
+                type="button"
+                disabled={isDeletingBatch}
+                onClick={() => setIsConfirmDeleteOpen(false)}
+                className="flex-1 py-2.5 rounded-xl border border-border bg-card hover:bg-card-hover text-foreground text-xs font-semibold transition-colors"
+              >
+                {t('cancel')}
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingBatch}
+                onClick={handleExecuteBatchDelete}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-semibold shadow-lg shadow-rose-600/20 transition-colors"
+              >
+                {isDeletingBatch ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>{t('deleting')}</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4" />
+                    <span>{t('confirmDelete')}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Floating 60s Undo Notification */}
       <UndoToast
