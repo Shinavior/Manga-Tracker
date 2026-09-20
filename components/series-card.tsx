@@ -67,6 +67,7 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
   // Merge State
   const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
   const [mergeSuggestions, setMergeSuggestions] = useState<Array<{ id: string; title: string; coverUrl: string | null }>>([]);
+  const [allSeriesOptions, setAllSeriesOptions] = useState<Array<{ id: string; title: string }>>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [selectedMergeId, setSelectedMergeId] = useState<string>('');
   const [isMerging, setIsMerging] = useState(false);
@@ -78,12 +79,28 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
     setIsMergeModalOpen(true);
     setLoadingSuggestions(true);
     try {
-      const res = await fetch(`/api/series/${series.id}/merge`);
-      if (res.ok) {
-        const data = await res.json();
-        setMergeSuggestions(data.suggestions || []);
-        if (data.suggestions?.length > 0) {
-          setSelectedMergeId(data.suggestions[0].id);
+      // 1. Fetch suggestions
+      const [sugRes, allRes] = await Promise.all([
+        fetch(`/api/series/${series.id}/merge`),
+        fetch('/api/series?limit=100'),
+      ]);
+
+      if (sugRes.ok) {
+        const sugData = await sugRes.json();
+        setMergeSuggestions(sugData.suggestions || []);
+        if (sugData.suggestions?.length > 0) {
+          setSelectedMergeId(sugData.suggestions[0].id);
+        }
+      }
+
+      if (allRes.ok) {
+        const allData = await allRes.json();
+        const otherSeries = (allData.items || [])
+          .filter((s: { id: string }) => s.id !== series.id)
+          .map((s: { id: string; title: string }) => ({ id: s.id, title: s.title }));
+        setAllSeriesOptions(otherSeries);
+        if (!selectedMergeId && otherSeries.length > 0) {
+          setSelectedMergeId(otherSeries[0].id);
         }
       }
     } catch {
@@ -105,7 +122,6 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
       const data = await res.json();
       if (res.ok && data.series) {
         setIsMergeModalOpen(false);
-        // Refresh page or trigger callback
         window.location.reload();
       } else {
         alert(data.message || 'Failed to merge series');
@@ -491,40 +507,68 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
               </label>
 
               {loadingSuggestions ? (
-                <div className="text-xs text-zinc-500 py-4 text-center">Finding similar series...</div>
-              ) : mergeSuggestions.length === 0 ? (
-                <div className="text-xs text-zinc-500 py-4 bg-zinc-950/60 rounded-xl p-3 border border-zinc-800 text-center">
-                  No similar title suggestions found. You can enter another Series ID or merge from library.
-                </div>
+                <div className="text-xs text-zinc-500 py-4 text-center">Loading library series...</div>
               ) : (
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {mergeSuggestions.map((sug) => (
-                    <label
-                      key={sug.id}
-                      className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
-                        selectedMergeId === sug.id
-                          ? 'bg-indigo-950/40 border-indigo-500 text-white'
-                          : 'bg-zinc-950/60 border-zinc-800 text-zinc-300 hover:border-zinc-700'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="mergeTarget"
-                        value={sug.id}
-                        checked={selectedMergeId === sug.id}
-                        onChange={() => setSelectedMergeId(sug.id)}
-                        className="text-indigo-600 focus:ring-indigo-500"
-                      />
-                      {sug.coverUrl && (
-                        <img
-                          src={sug.coverUrl}
-                          alt={sug.title}
-                          className="w-8 h-10 object-cover rounded bg-zinc-800 border border-zinc-700 flex-shrink-0"
-                        />
-                      )}
-                      <span className="text-xs font-medium truncate flex-1">{sug.title}</span>
-                    </label>
-                  ))}
+                <div className="space-y-3">
+                  {mergeSuggestions.length > 0 && (
+                    <div className="space-y-1.5">
+                      <div className="text-[11px] font-semibold text-indigo-400">✨ Smart Suggestions (Similar Titles):</div>
+                      <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
+                        {mergeSuggestions.map((sug) => (
+                          <label
+                            key={sug.id}
+                            className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                              selectedMergeId === sug.id
+                                ? 'bg-indigo-950/40 border-indigo-500 text-white'
+                                : 'bg-zinc-950/60 border-zinc-800 text-zinc-300 hover:border-zinc-700'
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="mergeTarget"
+                              value={sug.id}
+                              checked={selectedMergeId === sug.id}
+                              onChange={() => setSelectedMergeId(sug.id)}
+                              className="text-indigo-600 focus:ring-indigo-500"
+                            />
+                            {sug.coverUrl && (
+                              <img
+                                src={sug.coverUrl}
+                                alt={sug.title}
+                                className="w-8 h-10 object-cover rounded bg-zinc-800 border border-zinc-700 flex-shrink-0"
+                              />
+                            )}
+                            <span className="text-xs font-medium truncate flex-1">{sug.title}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Manual All Series Dropdown */}
+                  <div className="space-y-1.5">
+                    <div className="text-[11px] font-semibold text-zinc-400">
+                      {mergeSuggestions.length > 0 ? 'Or choose any other series:' : 'Choose a series from your library:'}
+                    </div>
+                    {allSeriesOptions.length === 0 ? (
+                      <div className="text-xs text-zinc-500 py-2 bg-zinc-950/60 rounded-xl p-3 border border-zinc-800 text-center">
+                        No other series found in your library to merge.
+                      </div>
+                    ) : (
+                      <select
+                        value={selectedMergeId}
+                        onChange={(e) => setSelectedMergeId(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-700 text-white text-xs focus:outline-none focus:border-indigo-500"
+                      >
+                        <option value="" disabled>-- Select a series --</option>
+                        {allSeriesOptions.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.title}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
