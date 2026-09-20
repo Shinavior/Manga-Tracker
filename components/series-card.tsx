@@ -233,7 +233,7 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
 
   return (
     <div
-      className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border bg-card p-4 transition-all duration-200 hover:border-purple-500/40 hover:shadow-xl hover:shadow-purple-950/20 ${
+      className={`group relative flex flex-col justify-between overflow-visible rounded-2xl border bg-card p-4 transition-all duration-200 hover:border-purple-500/40 hover:shadow-xl hover:shadow-purple-950/20 ${
         series.needsReview ? 'border-l-4 border-l-amber-500 border-border' : 'border-border'
       }`}
     >
@@ -313,56 +313,66 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
                   </button>
 
                   {isMenuOpen && (
-                    <div className="absolute right-0 top-full z-30 mt-1 w-44 rounded-xl border border-border bg-card p-1.5 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-100">
-                      <button
-                        onClick={() => {
-                          setIsMenuOpen(false);
-                          setIsEditingTitle(true);
-                        }}
-                        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-gray-200 hover:bg-card-hover"
-                      >
-                        <Edit2 className="h-3.5 w-3.5" />
-                        <span>Rename Series</span>
-                      </button>
+                    <>
+                      <div
+                        className="fixed inset-0 z-20"
+                        onClick={() => setIsMenuOpen(false)}
+                      />
+                      <div className="absolute right-0 top-full z-30 mt-1 w-48 rounded-xl border border-zinc-700 bg-zinc-900/95 p-1.5 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-100 divide-y divide-zinc-800/60">
+                        <div className="py-1">
+                          <button
+                            onClick={() => {
+                              setIsMenuOpen(false);
+                              setIsEditingTitle(true);
+                            }}
+                            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 hover:bg-zinc-800"
+                          >
+                            <Edit2 className="h-3.5 w-3.5 text-zinc-400" />
+                            <span>Rename Series</span>
+                          </button>
+                        </div>
 
-                      <div className="my-1 border-t border-border/50" />
-                      <div className="px-2 py-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
-                        Change Status
+                        <div className="py-1">
+                          <div className="px-2.5 py-1 text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
+                            Change Status
+                          </div>
+                          {['unread', 'reading', 'read', 'waiting', 'paused', 'dropped'].map((st) => (
+                            <button
+                              key={st}
+                              onClick={() => handleStatusChange(st)}
+                              className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1 text-xs capitalize ${
+                                series.status === st
+                                  ? 'bg-purple-600/20 text-purple-300 font-medium'
+                                  : 'text-zinc-300 hover:bg-zinc-800'
+                              }`}
+                            >
+                              <span>{st}</span>
+                              {series.status === st && <Check className="h-3 w-3" />}
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="py-1">
+                          <button
+                            onClick={handleOpenMergeModal}
+                            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-indigo-300 hover:bg-indigo-950/40 font-medium"
+                          >
+                            <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
+                            <span>Merge Series...</span>
+                          </button>
+                        </div>
+
+                        <div className="pt-1">
+                          <button
+                            onClick={handleDelete}
+                            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-rose-400 hover:bg-rose-950/30 font-medium"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            <span>Delete Series</span>
+                          </button>
+                        </div>
                       </div>
-
-                      {['unread', 'reading', 'read', 'waiting', 'paused', 'dropped'].map((st) => (
-                        <button
-                          key={st}
-                          onClick={() => handleStatusChange(st)}
-                          className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1 text-xs capitalize ${
-                            series.status === st
-                              ? 'bg-purple-600/20 text-purple-300 font-medium'
-                              : 'text-gray-300 hover:bg-card-hover'
-                          }`}
-                        >
-                          <span>{st}</span>
-                          {series.status === st && <Check className="h-3 w-3" />}
-                        </button>
-                      ))}
-
-                      <div className="my-1 border-t border-border/50" />
-                      <button
-                        onClick={handleOpenMergeModal}
-                        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-indigo-300 hover:bg-indigo-950/30"
-                      >
-                        <Sparkles className="h-3.5 w-3.5" />
-                        <span>Merge Series...</span>
-                      </button>
-
-                      <div className="my-1 border-t border-border/50" />
-                      <button
-                        onClick={handleDelete}
-                        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-red-400 hover:bg-red-950/30"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        <span>Delete Series</span>
-                      </button>
-                    </div>
+                    </>
                   )}
                 </div>
               </div>
