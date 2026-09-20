@@ -64,7 +64,58 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
   const [isLoadingNext, setIsLoadingNext] = useState(false);
   const [nextFeedback, setNextFeedback] = useState<string | null>(null);
 
+  // Merge State
+  const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
+  const [mergeSuggestions, setMergeSuggestions] = useState<Array<{ id: string; title: string; coverUrl: string | null }>>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [selectedMergeId, setSelectedMergeId] = useState<string>('');
+  const [isMerging, setIsMerging] = useState(false);
+
   const statusConfig = STATUS_CONFIG[series.status] || STATUS_CONFIG.unread;
+
+  const handleOpenMergeModal = async () => {
+    setIsMenuOpen(false);
+    setIsMergeModalOpen(true);
+    setLoadingSuggestions(true);
+    try {
+      const res = await fetch(`/api/series/${series.id}/merge`);
+      if (res.ok) {
+        const data = await res.json();
+        setMergeSuggestions(data.suggestions || []);
+        if (data.suggestions?.length > 0) {
+          setSelectedMergeId(data.suggestions[0].id);
+        }
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
+  const handleExecuteMerge = async () => {
+    if (!selectedMergeId) return;
+    setIsMerging(true);
+    try {
+      const res = await fetch(`/api/series/${series.id}/merge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sourceSeriesId: selectedMergeId }),
+      });
+      const data = await res.json();
+      if (res.ok && data.series) {
+        setIsMergeModalOpen(false);
+        // Refresh page or trigger callback
+        window.location.reload();
+      } else {
+        alert(data.message || 'Failed to merge series');
+      }
+    } catch (err) {
+      alert('Error during series merge');
+    } finally {
+      setIsMerging(false);
+    }
+  };
 
   const handleContinue = async () => {
     if (!series.currentChapter?.url) return;
@@ -296,6 +347,15 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
 
                       <div className="my-1 border-t border-border/50" />
                       <button
+                        onClick={handleOpenMergeModal}
+                        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-indigo-300 hover:bg-indigo-950/30"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        <span>Merge Series...</span>
+                      </button>
+
+                      <div className="my-1 border-t border-border/50" />
+                      <button
                         onClick={handleDelete}
                         className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-red-400 hover:bg-red-950/30"
                       >
@@ -393,6 +453,92 @@ export function SeriesCard({ series, onUpdate, onDelete }: SeriesCardProps) {
           )}
         </button>
       </div>
+
+      {/* Merge Series Dialog Modal */}
+      {isMergeModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-4 text-left">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-indigo-400" />
+                Merge Series
+              </h3>
+              <button
+                onClick={() => setIsMergeModalOpen(false)}
+                className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              Combine another series entry into <strong>{series.title}</strong>. All chapter reading history and tags will be united under this card.
+            </p>
+
+            <div className="space-y-3">
+              <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider">
+                Select series to merge in:
+              </label>
+
+              {loadingSuggestions ? (
+                <div className="text-xs text-zinc-500 py-4 text-center">Finding similar series...</div>
+              ) : mergeSuggestions.length === 0 ? (
+                <div className="text-xs text-zinc-500 py-4 bg-zinc-950/60 rounded-xl p-3 border border-zinc-800 text-center">
+                  No similar title suggestions found. You can enter another Series ID or merge from library.
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {mergeSuggestions.map((sug) => (
+                    <label
+                      key={sug.id}
+                      className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                        selectedMergeId === sug.id
+                          ? 'bg-indigo-950/40 border-indigo-500 text-white'
+                          : 'bg-zinc-950/60 border-zinc-800 text-zinc-300 hover:border-zinc-700'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="mergeTarget"
+                        value={sug.id}
+                        checked={selectedMergeId === sug.id}
+                        onChange={() => setSelectedMergeId(sug.id)}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      {sug.coverUrl && (
+                        <img
+                          src={sug.coverUrl}
+                          alt={sug.title}
+                          className="w-8 h-10 object-cover rounded bg-zinc-800 border border-zinc-700 flex-shrink-0"
+                        />
+                      )}
+                      <span className="text-xs font-medium truncate flex-1">{sug.title}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 pt-3 border-t border-zinc-800">
+              <button
+                type="button"
+                onClick={() => setIsMergeModalOpen(false)}
+                className="flex-1 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteMerge}
+                disabled={!selectedMergeId || isMerging}
+                className="flex-1 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold shadow-lg shadow-indigo-600/20 transition-colors"
+              >
+                {isMerging ? 'Merging...' : 'Confirm Merge'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

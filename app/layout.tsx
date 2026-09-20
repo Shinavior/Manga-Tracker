@@ -45,6 +45,12 @@ export default function RootLayout({
                   Library
                 </Link>
                 <Link
+                  href="/trash"
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"
+                >
+                  Trash (30d)
+                </Link>
+                <Link
                   href="/settings"
                   className="px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"
                 >

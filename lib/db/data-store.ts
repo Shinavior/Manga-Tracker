@@ -528,4 +528,212 @@ export class DataStore {
     }
     return null;
   }
+
+  // ================= Trash & Chapter Management =================
+
+  // List all archived chapters across user series with remaining purge countdown
+  static listArchivedChapters(userId: string): Array<ChapterRecord & {
+    seriesTitle: string;
+    seriesCoverUrl: string | null;
+    daysRemaining: number;
+  }> {
+    const list: Array<ChapterRecord & {
+      seriesTitle: string;
+      seriesCoverUrl: string | null;
+      daysRemaining: number;
+    }> = [];
+
+    const now = Date.now();
+
+    for (const ch of chaptersDb.values()) {
+      if (ch.archivedAt && !ch.isCurrent) {
+        const series = seriesDb.get(ch.seriesId);
+        if (series && series.userId === userId) {
+          const purgeTime = ch.purgeAt ? ch.purgeAt.getTime() : now + 30 * 86400000;
+          const daysRemaining = Math.max(0, Math.ceil((purgeTime - now) / (1000 * 60 * 60 * 24)));
+
+          list.push({
+            ...ch,
+            seriesTitle: series.customTitle || series.autoTitle || 'Untitled Series',
+            seriesCoverUrl: series.coverUrl,
+            daysRemaining,
+          });
+        }
+      }
+    }
+
+    return list.sort((a, b) => {
+      const timeA = a.archivedAt ? a.archivedAt.getTime() : 0;
+      const timeB = b.archivedAt ? b.archivedAt.getTime() : 0;
+      return timeB - timeA;
+    });
+  }
+
+  // Restore an archived chapter to be the current chapter
+  static restoreChapter(userId: string, chapterId: string): {
+    success: boolean;
+    series?: SeriesRecord;
+    chapter?: ChapterRecord;
+    message?: string;
+  } {
+    const targetChapter = chaptersDb.get(chapterId);
+    if (!targetChapter) return { success: false, message: 'Chapter not found' };
+
+    const series = seriesDb.get(targetChapter.seriesId);
+    if (!series || series.userId !== userId) return { success: false, message: 'Series not found' };
+
+    // Archive current chapter if different
+    if (series.currentChapterId && series.currentChapterId !== chapterId) {
+      const currentCh = chaptersDb.get(series.currentChapterId);
+      if (currentCh) {
+        currentCh.isCurrent = false;
+        currentCh.archivedAt = new Date();
+        currentCh.purgeAt = new Date(Date.now() + 30 * 86400000);
+        chaptersDb.set(currentCh.id, currentCh);
+      }
+    }
+
+    // Set restored chapter as current
+    targetChapter.isCurrent = true;
+    targetChapter.archivedAt = null;
+    targetChapter.purgeAt = null;
+    targetChapter.restoredCount = (targetChapter.restoredCount || 0) + 1;
+    chaptersDb.set(targetChapter.id, targetChapter);
+
+    series.currentChapterId = targetChapter.id;
+    series.updatedAt = new Date();
+    seriesDb.set(series.id, series);
+
+    return { success: true, series, chapter: targetChapter };
+  }
+
+  // Permanently delete a chapter
+  static deleteChapter(userId: string, chapterId: string): boolean {
+    const chapter = chaptersDb.get(chapterId);
+    if (!chapter) return false;
+
+    const series = seriesDb.get(chapter.seriesId);
+    if (!series || series.userId !== userId) return false;
+
+    // If deleting current chapter, swap current pointer to most recent remaining chapter if exists
+    if (series.currentChapterId === chapterId) {
+      const remaining = DataStore.getChaptersForSeries(series.id).filter((c) => c.id !== chapterId);
+      if (remaining.length > 0) {
+        remaining[0].isCurrent = true;
+        remaining[0].archivedAt = null;
+        remaining[0].purgeAt = null;
+        chaptersDb.set(remaining[0].id, remaining[0]);
+        series.currentChapterId = remaining[0].id;
+      } else {
+        series.currentChapterId = null;
+      }
+      series.updatedAt = new Date();
+      seriesDb.set(series.id, series);
+    }
+
+    chaptersDb.delete(chapterId);
+    return true;
+  }
+
+  // ================= Series Merging Engine =================
+
+  // Merge sourceSeriesId INTO targetSeriesId losslessly
+  static mergeSeries(
+    userId: string,
+    targetSeriesId: string,
+    sourceSeriesId: string
+  ): { success: boolean; targetSeries?: SeriesRecord; message?: string } {
+    if (targetSeriesId === sourceSeriesId) {
+      return { success: false, message: 'Cannot merge a series into itself' };
+    }
+
+    const target = DataStore.findSeriesById(userId, targetSeriesId);
+    const source = DataStore.findSeriesById(userId, sourceSeriesId);
+
+    if (!target || !source) {
+      return { success: false, message: 'Target or source series not found' };
+    }
+
+    // 1. Re-link all source chapters to target series
+    for (const ch of chaptersDb.values()) {
+      if (ch.seriesId === sourceSeriesId) {
+        ch.seriesId = targetSeriesId;
+        chaptersDb.set(ch.id, ch);
+      }
+    }
+
+    // 2. Combine tags
+    const combinedTags = Array.from(new Set([...target.tags, ...source.tags]));
+    target.tags = combinedTags;
+
+    // 3. Keep highest chapter as current
+    const allChapters = DataStore.getChaptersForSeries(targetSeriesId);
+    if (allChapters.length > 0) {
+      // Find chapter with highest chapterNumber or most recent
+      const sorted = [...allChapters].sort((a, b) => {
+        if (a.chapterNumber != null && b.chapterNumber != null) {
+          return b.chapterNumber - a.chapterNumber;
+        }
+        return b.savedAt.getTime() - a.savedAt.getTime();
+      });
+
+      const bestCurrent = sorted[0];
+      for (const ch of allChapters) {
+        ch.isCurrent = ch.id === bestCurrent.id;
+        if (ch.isCurrent) {
+          ch.archivedAt = null;
+          ch.purgeAt = null;
+        } else if (!ch.archivedAt) {
+          ch.archivedAt = new Date();
+          ch.purgeAt = new Date(Date.now() + 30 * 86400000);
+        }
+        chaptersDb.set(ch.id, ch);
+      }
+      target.currentChapterId = bestCurrent.id;
+    }
+
+    // 4. Fill missing metadata if target was missing cover or title
+    if (!target.coverUrl && source.coverUrl) target.coverUrl = source.coverUrl;
+    if (!target.customTitle && !target.autoTitle && (source.customTitle || source.autoTitle)) {
+      target.autoTitle = source.customTitle || source.autoTitle;
+    }
+
+    target.updatedAt = new Date();
+    seriesDb.set(targetSeriesId, target);
+
+    // 5. Delete source series
+    seriesDb.delete(sourceSeriesId);
+
+    return { success: true, targetSeries: target };
+  }
+
+  // Get merge suggestions based on title token similarity
+  static getMergeSuggestions(
+    userId: string,
+    currentSeriesId: string,
+    titleQuery: string
+  ): Array<{ id: string; title: string; coverUrl: string | null }> {
+    if (!titleQuery || titleQuery.length < 2) return [];
+    const tokens = titleQuery.toLowerCase().split(/\s+/).filter((t) => t.length > 2);
+    if (tokens.length === 0) return [];
+
+    const matches: Array<{ id: string; title: string; coverUrl: string | null }> = [];
+
+    for (const s of seriesDb.values()) {
+      if (s.userId !== userId || s.id === currentSeriesId) continue;
+      const sTitle = (s.customTitle || s.autoTitle || '').toLowerCase();
+      if (!sTitle) continue;
+
+      const hasMatch = tokens.some((token) => sTitle.includes(token));
+      if (hasMatch) {
+        matches.push({
+          id: s.id,
+          title: s.customTitle || s.autoTitle || 'Untitled Series',
+          coverUrl: s.coverUrl,
+        });
+      }
+    }
+
+    return matches.slice(0, 5);
+  }
 }
