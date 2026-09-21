@@ -257,53 +257,53 @@ export default function SettingsPage() {
   return (
     <div className="max-w-4xl mx-auto py-8 px-4 space-y-10">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-zinc-800 pb-5">
+      <div className="flex items-center justify-between border-b border-border pb-5">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">{t('settingsTitle')}</h1>
-          <p className="text-sm text-zinc-400 mt-1">{t('settingsSubtitle')}</p>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">{t('settingsTitle')}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t('settingsSubtitle')}</p>
         </div>
         <Link
           href="/"
-          className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-medium transition-colors border border-zinc-700"
+          className="px-4 py-2 rounded-xl bg-card hover:bg-card-hover text-foreground text-sm font-medium transition-colors border border-border"
         >
           {t('backToLibrary')}
         </Link>
       </div>
 
       {/* 1. Backup, Restore & Bookmarks Import */}
-      <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-6">
+      <section className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-6">
         <div>
-          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-            <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
             </svg>
             {t('sectionBackupTitle')}
           </h2>
-          <p className="text-xs text-zinc-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             {t('sectionBackupDesc')}
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-4">
           {/* Export Box */}
-          <div className="bg-zinc-950/60 border border-zinc-800 rounded-xl p-5 space-y-3 flex flex-col justify-between">
+          <div className="bg-background border border-border rounded-xl p-5 space-y-3 flex flex-col justify-between">
             <div>
-              <div className="text-sm font-semibold text-white flex items-center gap-2"><span>📦</span> {t('exportLibraryTitle')}</div>
-              <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{t('exportLibraryDesc')}</p>
+              <div className="text-sm font-semibold text-foreground flex items-center gap-2"><span>📦</span> {t('exportLibraryTitle')}</div>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{t('exportLibraryDesc')}</p>
             </div>
             <button
               onClick={handleExportData}
-              className="w-full px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold transition-colors border border-zinc-700 flex items-center justify-center gap-2"
+              className="w-full px-4 py-2.5 rounded-xl bg-card hover:bg-card-hover text-foreground text-xs font-semibold transition-colors border border-border flex items-center justify-center gap-2 cursor-pointer shadow-xs"
             >
               <span>{t('exportDownload')}</span>
             </button>
           </div>
 
           {/* Import Box */}
-          <div className="bg-zinc-950/60 border border-zinc-800 rounded-xl p-5 space-y-3 flex flex-col justify-between">
+          <div className="bg-background border border-border rounded-xl p-5 space-y-3 flex flex-col justify-between">
             <div>
-              <div className="text-sm font-semibold text-white flex items-center gap-2"><span>📥</span> {t('importTitle')}</div>
-              <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{t('importDesc')}</p>
+              <div className="text-sm font-semibold text-foreground flex items-center gap-2"><span>📥</span> {t('importTitle')}</div>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{t('importDesc')}</p>
             </div>
 
             <div>
@@ -327,14 +327,14 @@ export default function SettingsPage() {
 
         {/* Success/Error Banners */}
         {importSuccessMessage && (
-          <div className="p-4 rounded-xl bg-emerald-950/50 border border-emerald-500/40 text-xs text-emerald-300 flex items-center gap-2">
+          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
             <span>✅</span>
             <span>{importSuccessMessage}</span>
           </div>
         )}
 
         {importErrorMessage && (
-          <div className="p-4 rounded-xl bg-rose-950/50 border border-rose-500/40 text-xs text-rose-300 flex items-center gap-2">
+          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2">
             <span>❌</span>
             <span>{importErrorMessage}</span>
           </div>
@@ -342,14 +342,14 @@ export default function SettingsPage() {
 
         {/* Dry-Run Preview Modal / Panel */}
         {importPreview && (
-          <div className="bg-zinc-950 border border-indigo-500/40 rounded-xl p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+          <div className="bg-card border border-indigo-500/40 rounded-xl p-5 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between border-b border-border pb-3">
               <div>
-                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                   <span>🔎</span> Import Preview (Dry-Run)
                 </h3>
-                <p className="text-xs text-zinc-400 mt-0.5">
-                  Found {importPreview.totalItems} items: <strong className="text-emerald-400">{importPreview.newSeriesCount} new series</strong>, <strong className="text-indigo-400">{importPreview.existingSeriesCount} existing series updates</strong>.
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Found {importPreview.totalItems} items: <strong className="text-emerald-600 dark:text-emerald-400">{importPreview.newSeriesCount} new series</strong>, <strong className="text-indigo-600 dark:text-indigo-400">{importPreview.existingSeriesCount} existing series updates</strong>.
                 </p>
               </div>
               <button
@@ -358,30 +358,30 @@ export default function SettingsPage() {
                   setSelectedFile(null);
                   if (fileInputRef.current) fileInputRef.current.value = '';
                 }}
-                className="text-xs text-zinc-400 hover:text-zinc-200"
+                className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 ✕ Cancel
               </button>
             </div>
 
             {/* Preview List */}
-            <div className="max-h-60 overflow-y-auto divide-y divide-zinc-800/60 border border-zinc-800 rounded-lg">
+            <div className="max-h-60 overflow-y-auto divide-y divide-border border border-border rounded-lg">
               {importPreview.preview?.map((p, idx) => (
-                <div key={idx} className="p-2.5 bg-zinc-900/50 flex items-center justify-between gap-3 text-xs">
+                <div key={idx} className="p-2.5 bg-background flex items-center justify-between gap-3 text-xs">
                   <div className="min-w-0 flex-1">
-                    <div className="font-medium text-white truncate">{p.seriesTitle}</div>
-                    <div className="text-zinc-500 truncate text-[11px] font-mono">{p.url}</div>
+                    <div className="font-medium text-foreground truncate">{p.seriesTitle}</div>
+                    <div className="text-muted-foreground truncate text-[11px] font-mono">{p.url}</div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 font-mono text-[11px]">
+                    <span className="px-2 py-0.5 rounded bg-muted text-muted-foreground font-mono text-[11px] border border-border">
                       {p.chapterLabel}
                     </span>
                     {p.isNewSeries ? (
-                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-medium text-[11px] border border-emerald-500/30">
+                      <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium text-[11px] border border-emerald-500/20">
                         New Series
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-medium text-[11px] border border-indigo-500/30">
+                      <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-medium text-[11px] border border-indigo-500/20">
                         Update Existing
                       </span>
                     )}
@@ -397,14 +397,14 @@ export default function SettingsPage() {
                   setSelectedFile(null);
                   if (fileInputRef.current) fileInputRef.current.value = '';
                 }}
-                className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium transition-colors"
+                className="px-4 py-2 rounded-xl bg-card hover:bg-card-hover text-foreground text-xs font-medium transition-colors border border-border cursor-pointer"
               >
                 Discard
               </button>
               <button
                 onClick={handleConfirmImport}
                 disabled={executingImport}
-                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold transition-colors shadow-lg shadow-emerald-600/20 flex items-center gap-2"
+                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
               >
                 {executingImport ? t('importing') : t('confirmAndImport')}
               </button>
@@ -414,36 +414,36 @@ export default function SettingsPage() {
       </section>
 
       {/* 2. Automated Jobs & Retention Purge */}
-      <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-6">
+      <section className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-6">
         <div>
-          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-            <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
             {t('sectionJobsTitle')}
           </h2>
-          <p className="text-xs text-zinc-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             {t('sectionJobsDesc')}
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-4">
           {/* Purge Job Card */}
-          <div className="bg-zinc-950/60 border border-zinc-800 rounded-xl p-5 space-y-4 flex flex-col justify-between">
+          <div className="bg-background border border-border rounded-xl p-5 space-y-4 flex flex-col justify-between">
             <div>
-              <div className="text-sm font-semibold text-white flex items-center gap-2"><span>🧹</span> {t('purgeJobTitle').replace('🧹 ','')}</div>
-              <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{t('purgeJobDesc')}</p>
+              <div className="text-sm font-semibold text-foreground flex items-center gap-2"><span>🧹</span> {t('purgeJobTitle').replace('🧹 ','')}</div>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{t('purgeJobDesc')}</p>
             </div>
             <div className="space-y-2">
               <button
                 onClick={handleRunPurge}
                 disabled={runningPurge}
-                className="w-full px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-zinc-200 text-xs font-semibold transition-colors border border-zinc-700"
+                className="w-full px-4 py-2 rounded-xl bg-card hover:bg-card-hover disabled:opacity-50 text-foreground text-xs font-semibold transition-colors border border-border cursor-pointer shadow-xs"
               >
                 {runningPurge ? t('purging') : t('runPurgeNow')}
               </button>
               {purgeResult && (
-                <div className="text-[11px] text-zinc-300 bg-zinc-900 p-2 rounded-lg border border-zinc-800">
+                <div className="text-[11px] text-muted-foreground bg-muted p-2 rounded-lg border border-border font-mono">
                   {purgeResult}
                 </div>
               )}
@@ -451,21 +451,21 @@ export default function SettingsPage() {
           </div>
 
           {/* Update Check Job Card */}
-          <div className="bg-zinc-950/60 border border-zinc-800 rounded-xl p-5 space-y-4 flex flex-col justify-between">
+          <div className="bg-background border border-border rounded-xl p-5 space-y-4 flex flex-col justify-between">
             <div>
-              <div className="text-sm font-semibold text-white flex items-center gap-2"><span>🔄</span> {t('updateJobTitle').replace('🔄 ','')}</div>
-              <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{t('updateJobDesc')}</p>
+              <div className="text-sm font-semibold text-foreground flex items-center gap-2"><span>🔄</span> {t('updateJobTitle').replace('🔄 ','')}</div>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{t('updateJobDesc')}</p>
             </div>
             <div className="space-y-2">
               <button
                 onClick={handleRunUpdateCheck}
                 disabled={runningUpdateCheck}
-                className="w-full px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-zinc-200 text-xs font-semibold transition-colors border border-zinc-700"
+                className="w-full px-4 py-2 rounded-xl bg-card hover:bg-card-hover disabled:opacity-50 text-foreground text-xs font-semibold transition-colors border border-border cursor-pointer shadow-xs"
               >
                 {runningUpdateCheck ? t('checking') : t('checkUpdatesNow2')}
               </button>
               {updateCheckResult && (
-                <div className="text-[11px] text-zinc-300 bg-zinc-900 p-2 rounded-lg border border-zinc-800">
+                <div className="text-[11px] text-muted-foreground bg-muted p-2 rounded-lg border border-border font-mono">
                   {updateCheckResult}
                 </div>
               )}
@@ -475,15 +475,15 @@ export default function SettingsPage() {
       </section>
 
       {/* 3. API Tokens Section */}
-      <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-6">
+      <section className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-6">
         <div>
-          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-            <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
             </svg>
             {t('sectionTokensTitle')}
           </h2>
-          <p className="text-xs text-zinc-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             {t('sectionTokensDesc')}
           </p>
         </div>
@@ -496,12 +496,12 @@ export default function SettingsPage() {
             placeholder={t('tokenNamePlaceholder')}
             value={newTokenName}
             onChange={(e) => setNewTokenName(e.target.value)}
-            className="flex-1 px-4 py-2 rounded-xl bg-zinc-950 border border-zinc-700 text-white text-sm focus:outline-none focus:border-indigo-500 transition-colors"
+            className="flex-1 px-4 py-2 rounded-xl bg-background border border-border text-foreground text-sm focus:outline-none focus:border-indigo-500 transition-colors"
           />
           <button
             type="submit"
             disabled={creatingToken}
-            className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-medium text-sm transition-colors shadow-lg shadow-indigo-600/20 whitespace-nowrap"
+            className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-medium text-sm transition-colors shadow-xs whitespace-nowrap cursor-pointer"
           >
             {creatingToken ? t('generating') : t('createToken')}
           </button>
@@ -509,21 +509,21 @@ export default function SettingsPage() {
 
         {/* Newly created token alert */}
         {createdRawToken && (
-          <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-4 space-y-2">
+          <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-emerald-400">{t('newTokenCreated')}</span>
+              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">{t('newTokenCreated')}</span>
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(createdRawToken);
                   setCopiedToken(true);
                   setTimeout(() => setCopiedToken(false), 2000);
                 }}
-                className="text-xs px-3 py-1 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-medium transition-colors"
+                className="text-xs px-3 py-1 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-medium transition-colors cursor-pointer"
               >
                 {copiedToken ? t('copied') : t('copyKey')}
               </button>
             </div>
-            <code className="block bg-zinc-950 p-2.5 rounded-lg text-xs font-mono text-emerald-300 break-all select-all border border-emerald-900/50">
+            <code className="block bg-background p-2.5 rounded-lg text-xs font-mono text-emerald-600 dark:text-emerald-300 break-all select-all border border-emerald-500/20">
               {createdRawToken}
             </code>
           </div>
@@ -531,30 +531,30 @@ export default function SettingsPage() {
 
         {/* Active Tokens List */}
         <div className="space-y-2">
-          <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">{t('activeTokens')}</h3>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('activeTokens')}</h3>
           {loadingTokens ? (
-            <div className="text-xs text-zinc-500 py-3">{t('loadingTokens')}</div>
+            <div className="text-xs text-muted-foreground py-3">{t('loadingTokens')}</div>
           ) : tokens.length === 0 ? (
-            <div className="text-xs text-zinc-500 py-3 bg-zinc-950/50 rounded-xl border border-zinc-800/80 px-4">{t('noTokensYet')}</div>
+            <div className="text-xs text-muted-foreground py-3 bg-background rounded-xl border border-border px-4">{t('noTokensYet')}</div>
           ) : (
-            <div className="divide-y divide-zinc-800 border border-zinc-800 rounded-xl overflow-hidden">
+            <div className="divide-y divide-border border border-border rounded-xl overflow-hidden">
               {tokens.map((token) => (
-                <div key={token.id} className="p-3 bg-zinc-950/60 flex items-center justify-between gap-4">
+                <div key={token.id} className="p-3 bg-background flex items-center justify-between gap-4">
                   <div>
-                    <div className="text-sm font-medium text-white flex items-center gap-2">
+                    <div className="text-sm font-medium text-foreground flex items-center gap-2">
                       {token.name}
-                      <span className="text-xs font-mono text-zinc-400 px-1.5 py-0.5 rounded bg-zinc-800">
+                      <span className="text-xs font-mono text-muted-foreground px-1.5 py-0.5 rounded bg-muted border border-border">
                         ...{token.lastFour}
                       </span>
                     </div>
-                    <div className="text-xs text-zinc-500 mt-0.5">
+                    <div className="text-xs text-muted-foreground mt-0.5">
                       Created: {new Date(token.createdAt).toLocaleDateString()}
                       {token.lastUsedAt && ` · Last used: ${new Date(token.lastUsedAt).toLocaleDateString()}`}
                     </div>
                   </div>
                   <button
                     onClick={() => handleRevokeToken(token.id)}
-                    className="text-xs px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-medium transition-colors border border-rose-500/20"
+                    className="text-xs px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-medium transition-colors border border-rose-500/20 cursor-pointer"
                   >
                     {t('revokeToken')}
                   </button>
@@ -566,41 +566,41 @@ export default function SettingsPage() {
       </section>
 
       {/* 4. One-Tap Bookmarklet Section */}
-      <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-6">
+      <section className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-6">
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-              <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
               </svg>
               {t('sectionBookmarkletTitle')}
             </h2>
-            <p className="text-xs text-zinc-400 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {t('sectionBookmarkletDesc')}
             </p>
           </div>
           <button
             onClick={testToastPreview}
-            className="text-xs px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium border border-zinc-700"
+            className="text-xs px-3 py-1.5 rounded-lg bg-card hover:bg-card-hover text-foreground font-medium border border-border cursor-pointer"
           >
             {t('testToastPreview')}
           </button>
         </div>
 
         {/* Configuration Tabs */}
-        <div className="bg-zinc-950/70 border border-zinc-800 rounded-xl p-4 space-y-4">
+        <div className="bg-background border border-border rounded-xl p-4 space-y-4">
           <div className="grid sm:grid-cols-2 gap-4">
             {/* Auth Mode */}
             <div>
-              <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 Authentication
               </label>
-              <div className="flex rounded-lg bg-zinc-900 p-1 border border-zinc-800">
+              <div className="flex rounded-lg bg-card p-1 border border-border">
                 <button
                   type="button"
                   onClick={() => setTokenMode('single_user')}
-                  className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-colors ${
-                    tokenMode === 'single_user' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'
+                  className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                    tokenMode === 'single_user' ? 'bg-indigo-600 text-white shadow-xs' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   Single User Mode
@@ -608,8 +608,8 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setTokenMode('custom')}
-                  className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-colors ${
-                    tokenMode === 'custom' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'
+                  className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                    tokenMode === 'custom' ? 'bg-indigo-600 text-white shadow-xs' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   Custom API Key
@@ -619,15 +619,15 @@ export default function SettingsPage() {
 
             {/* Bookmarklet Behavior */}
             <div>
-              <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 Action Style
               </label>
-              <div className="flex rounded-lg bg-zinc-900 p-1 border border-zinc-800">
+              <div className="flex rounded-lg bg-card p-1 border border-border">
                 <button
                   type="button"
                   onClick={() => setBookmarkletType('toast')}
-                  className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-colors ${
-                    bookmarkletType === 'toast' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'
+                  className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                    bookmarkletType === 'toast' ? 'bg-indigo-600 text-white shadow-xs' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   In-Page Toast (Silent)
@@ -635,8 +635,8 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setBookmarkletType('popup')}
-                  className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-colors ${
-                    bookmarkletType === 'popup' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'
+                  className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                    bookmarkletType === 'popup' ? 'bg-indigo-600 text-white shadow-xs' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   Popup Window
@@ -647,8 +647,8 @@ export default function SettingsPage() {
 
           {/* Custom Token Input (if custom selected) */}
           {tokenMode === 'custom' && (
-            <div className="pt-2 border-t border-zinc-800/80">
-              <label className="block text-xs font-medium text-zinc-300 mb-1">
+            <div className="pt-2 border-t border-border">
+              <label className="block text-xs font-medium text-foreground mb-1">
                 API Token to embed:
               </label>
               <input
@@ -656,15 +656,15 @@ export default function SettingsPage() {
                 placeholder="Paste mgt_... raw token"
                 value={customTokenInput}
                 onChange={(e) => setCustomTokenInput(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-xs font-mono text-white focus:outline-none focus:border-indigo-500"
+                className="w-full px-3 py-2 rounded-lg bg-card border border-border text-xs font-mono text-foreground focus:outline-none focus:border-indigo-500"
               />
             </div>
           )}
         </div>
 
         {/* Draggable button */}
-        <div className="p-6 bg-zinc-950/70 border border-zinc-800 rounded-xl text-center space-y-3">
-          <p className="text-xs text-zinc-400">{t('dragInstruction')}</p>
+        <div className="p-6 bg-background border border-border rounded-xl text-center space-y-3">
+          <p className="text-xs text-muted-foreground">{t('dragInstruction')}</p>
           <div>
             <a
               href={activeBookmarkletCode}
@@ -672,64 +672,64 @@ export default function SettingsPage() {
                 e.preventDefault();
                 alert('👉 Drag this button to your browser Bookmarks Bar (Ctrl+Shift+B / Cmd+Shift+B to show bookmarks bar).');
               }}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-zinc-950 font-bold text-sm shadow-lg shadow-amber-500/20 cursor-grab active:cursor-grabbing hover:brightness-110 transition-all border border-amber-400 select-none"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-amber-950 font-bold text-sm shadow-xs cursor-grab active:cursor-grabbing transition-all border border-amber-400 select-none"
             >
               <span>📌 + Track Manga</span>
             </a>
           </div>
-          <p className="text-[11px] text-zinc-500">
-            (Press <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-zinc-300">Ctrl+Shift+B</kbd> or <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-zinc-300">Cmd+Shift+B</kbd> to show bookmarks bar)
+          <p className="text-[11px] text-muted-foreground">
+            (Press <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-foreground">Ctrl+Shift+B</kbd> or <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-foreground">Cmd+Shift+B</kbd> to show bookmarks bar)
           </p>
         </div>
 
         {/* Code inspection & copy */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Bookmarklet JavaScript</span>
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Bookmarklet JavaScript</span>
             <button
               onClick={() => {
                 navigator.clipboard.writeText(activeBookmarkletCode);
                 setCopiedBookmarklet(true);
                 setTimeout(() => setCopiedBookmarklet(false), 2000);
               }}
-              className="text-xs px-3 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium transition-colors border border-zinc-700"
+              className="text-xs px-3 py-1 rounded bg-card hover:bg-card-hover text-foreground font-medium transition-colors border border-border cursor-pointer shadow-xs"
             >
               {copiedBookmarklet ? '✓ Copied Code' : 'Copy Code'}
             </button>
           </div>
-          <pre className="bg-zinc-950 p-3 rounded-xl text-xs font-mono text-zinc-400 overflow-x-auto border border-zinc-800 max-h-24">
+          <pre className="bg-background p-3 rounded-xl text-xs font-mono text-muted-foreground overflow-x-auto border border-border max-h-24">
             {activeBookmarkletCode}
           </pre>
         </div>
       </section>
 
       {/* 5. Mobile Sharing (iOS Shortcuts & Android PWA) */}
-      <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-6">
+      <section className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-6">
         <div>
-          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-            <svg className="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <svg className="w-5 h-5 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
             </svg>
               {t('sectionMobileTitle')}
           </h2>
-          <p className="text-xs text-zinc-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             {t('sectionMobileDesc')}
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-4">
           {/* iOS Shortcuts Card */}
-          <div className="bg-zinc-950/60 border border-zinc-800 rounded-xl p-4 space-y-3">
-            <div className="flex items-center gap-2 text-sm font-semibold text-white">
+          <div className="bg-background border border-border rounded-xl p-4 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <span className="text-base">🍎</span> iOS Shortcut (Share Sheet)
             </div>
-            <ol className="text-xs text-zinc-400 space-y-2 list-decimal list-inside leading-relaxed">
+            <ol className="text-xs text-muted-foreground space-y-2 list-decimal list-inside leading-relaxed">
               <li>Open the <strong>Shortcuts</strong> app on your iPhone or iPad.</li>
               <li>Create a new shortcut named <strong>"Track Manga"</strong>.</li>
               <li>Enable <strong>"Show in Share Sheet"</strong> for URLs and Safari web pages.</li>
               <li>
                 Add action <strong>"Get Contents of URL"</strong>:
-                <div className="bg-zinc-900 p-2 rounded mt-1 font-mono text-[11px] text-zinc-300 border border-zinc-800">
+                <div className="bg-card p-2 rounded mt-1 font-mono text-[11px] text-foreground border border-border">
                   URL: {baseUrl || 'http://localhost:3000'}/api/save<br/>
                   Method: POST<br/>
                   Headers: Authorization: Bearer &lt;YOUR_TOKEN&gt;<br/>
@@ -741,11 +741,11 @@ export default function SettingsPage() {
           </div>
 
           {/* Android Web Share Target Card */}
-          <div className="bg-zinc-950/60 border border-zinc-800 rounded-xl p-4 space-y-3">
-            <div className="flex items-center gap-2 text-sm font-semibold text-white">
+          <div className="bg-background border border-border rounded-xl p-4 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <span className="text-base">🤖</span> Android & Chrome PWA
             </div>
-            <ol className="text-xs text-zinc-400 space-y-2 list-decimal list-inside leading-relaxed">
+            <ol className="text-xs text-muted-foreground space-y-2 list-decimal list-inside leading-relaxed">
               <li>Open this website in <strong>Google Chrome</strong> on Android.</li>
               <li>Tap the menu &rarr; <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>.</li>
               <li>

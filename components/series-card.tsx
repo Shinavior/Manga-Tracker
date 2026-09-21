@@ -305,7 +305,7 @@ export function SeriesCard({
         {/* Top Info Header */}
         <div className="flex items-start gap-3.5">
           {/* Cover Art with Select Checkbox */}
-          <div className="relative h-24 w-18 shrink-0 overflow-hidden rounded-xl border border-border/60 bg-background/80 shadow-md">
+          <div className="relative w-20 h-28 shrink-0 overflow-hidden rounded-xl border border-border/80 bg-muted/60 shadow-xs">
             {series.coverUrl ? (
               <img
                 src={series.coverUrl}
@@ -313,10 +313,11 @@ export function SeriesCard({
                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
             ) : (
-              <div className="flex h-full w-full flex-col items-center justify-center bg-indigo-500/10 p-1 text-center">
-                <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+              <div className="flex h-full w-full flex-col items-center justify-center bg-indigo-500/5 p-2 text-center select-none">
+                <div className="h-8 w-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-sm mb-1">
                   {series.title.charAt(0).toUpperCase()}
-                </span>
+                </div>
+                <span className="text-[9px] text-muted-foreground line-clamp-1 font-mono">Manga</span>
               </div>
             )}
 
@@ -337,62 +338,42 @@ export function SeriesCard({
           </div>
 
           {/* Series details */}
-          <div className="flex-1 min-w-0">
-            {/* Title / Edit inline */}
-            {isEditingTitle && !isSelectMode ? (
-              <div className="flex items-center gap-1.5 mb-1" onClick={(e) => e.stopPropagation()}>
-                <input
-                  type="text"
-                  value={titleDraft}
-                  onChange={(e) => setTitleDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSaveTitle();
-                    if (e.key === 'Escape') {
-                      setTitleDraft(series.title);
-                      setIsEditingTitle(false);
-                    }
-                  }}
-                  className="w-full rounded-lg border border-indigo-500 bg-background px-2 py-0.5 text-sm font-semibold text-foreground focus:outline-none"
-                  autoFocus
-                />
-                <button
-                  onClick={handleSaveTitle}
-                  disabled={isSubmitting}
-                  className="rounded p-1 text-emerald-500 hover:bg-emerald-500/10 cursor-pointer"
-                >
-                  <Check className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => {
-                    setTitleDraft(series.title);
-                    setIsEditingTitle(false);
-                  }}
-                  className="rounded p-1 text-muted-foreground hover:bg-card-hover cursor-pointer"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-start justify-between gap-1">
-                <h3
-                  onClick={(e) => {
-                    if (!isSelectMode) {
-                      e.stopPropagation();
-                      setIsEditingTitle(true);
-                    }
-                  }}
-                  className="font-bold text-foreground text-base leading-tight truncate hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
-                  title={isSelectMode ? '' : t('editTitle')}
-                >
-                  {series.title}
-                </h3>
+          <div className="flex-1 min-w-0 flex flex-col justify-between">
+            <div>
+              {/* Row 1: Status Pill + Options Menu */}
+              <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {/* Reading Status Pill */}
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold border ${statusConfig.bg} ${statusConfig.color} border-current/20`}
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                    <span>{t(statusConfig.labelKey)}</span>
+                  </span>
+
+                  {/* New Update Badge */}
+                  {series.hasUpdate && (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>{t('newUpdateBadge')}</span>
+                    </span>
+                  )}
+
+                  {/* Needs Review Badge */}
+                  {series.needsReview && (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                      <AlertTriangle className="h-2.5 w-2.5" />
+                      <span>{t('needsReviewBadge')}</span>
+                    </span>
+                  )}
+                </div>
 
                 {/* ⋯ Options Menu */}
                 {!isSelectMode && (
                   <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => setIsMenuOpen(!isMenuOpen)}
-                      className="rounded-lg p-1 text-muted-foreground hover:bg-card-hover hover:text-foreground cursor-pointer"
+                      className="rounded-lg p-1 text-muted-foreground hover:bg-card-hover hover:text-foreground cursor-pointer transition-colors"
                     >
                       <MoreVertical className="h-4 w-4" />
                     </button>
@@ -462,51 +443,87 @@ export function SeriesCard({
                   </div>
                 )}
               </div>
-            )}
 
-            {/* Current Chapter & Source & Domain */}
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <span className="font-semibold text-foreground">
-                {series.currentChapter?.label || 'No chapters'}
-              </span>
-              <span>•</span>
-              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground border border-border">
-                {series.source}
-              </span>
-              {domain && (
-                <>
-                  <span>•</span>
-                  <span className="rounded bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 text-[10px] font-mono text-indigo-600 dark:text-indigo-400">
-                    {domain}
-                  </span>
-                </>
-              )}
-            </div>
-
-            {/* Badges & Tags */}
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              {series.hasUpdate && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  <span>{t('newUpdateBadge')}</span>
-                </span>
-              )}
-
-              {series.needsReview && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                  <AlertTriangle className="h-3 w-3" />
-                  <span>{t('needsReviewBadge')}</span>
-                </span>
-              )}
-
-              {series.tags.map((t) => (
-                <span
-                  key={t}
-                  className="rounded-md bg-muted border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground"
+              {/* Row 2: Title / Inline Edit */}
+              {isEditingTitle && !isSelectMode ? (
+                <div className="flex items-center gap-1.5 mb-1.5" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="text"
+                    value={titleDraft}
+                    onChange={(e) => setTitleDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveTitle();
+                      if (e.key === 'Escape') {
+                        setTitleDraft(series.title);
+                        setIsEditingTitle(false);
+                      }
+                    }}
+                    className="w-full rounded-lg border border-indigo-500 bg-background px-2 py-0.5 text-sm font-semibold text-foreground focus:outline-none"
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleSaveTitle}
+                    disabled={isSubmitting}
+                    className="rounded p-1 text-emerald-500 hover:bg-emerald-500/10 cursor-pointer"
+                  >
+                    <Check className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTitleDraft(series.title);
+                      setIsEditingTitle(false);
+                    }}
+                    className="rounded p-1 text-muted-foreground hover:bg-card-hover cursor-pointer"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <h3
+                  onClick={(e) => {
+                    if (!isSelectMode) {
+                      e.stopPropagation();
+                      setIsEditingTitle(true);
+                    }
+                  }}
+                  className="font-bold text-foreground text-sm leading-snug line-clamp-2 min-h-[2.5rem] hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+                  title={isSelectMode ? '' : t('editTitle')}
                 >
-                  #{t}
+                  {series.title}
+                </h3>
+              )}
+
+              {/* Row 3: Current Chapter & Domain */}
+              <div className="mt-1 flex items-center gap-1.5 text-xs">
+                <span className="font-semibold text-foreground">
+                  {series.currentChapter?.label || 'No chapters'}
                 </span>
-              ))}
+                {domain && (
+                  <>
+                    <span className="text-muted-foreground/40">•</span>
+                    <span className="text-[11px] font-mono text-muted-foreground hover:text-foreground">
+                      {domain}
+                    </span>
+                  </>
+                )}
+              </div>
+
+              {/* Row 4: Source & Relative Time & Tags */}
+              <div className="mt-1.5 flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
+                <span className="rounded bg-muted px-1.5 py-0.5 font-mono border border-border/60">
+                  {series.source}
+                </span>
+                {series.updatedAt && (
+                  <span className="text-muted-foreground/70">
+                    • {formatRelativeTime(series.updatedAt)}
+                  </span>
+                )}
+                {series.tags?.map((tg) => (
+                  <span key={tg} className="rounded bg-muted/60 px-1.5 py-0.5 text-muted-foreground/80">
+                    #{tg}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -514,11 +531,11 @@ export function SeriesCard({
 
       {/* Action Buttons */}
       {!isSelectMode && (
-        <div className="mt-4 flex items-center gap-2 border-t border-border/60 pt-3" onClick={(e) => e.stopPropagation()}>
+        <div className="mt-3.5 flex items-center gap-2 border-t border-border/60 pt-3" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={handleContinue}
             disabled={!series.currentChapter?.url}
-            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-indigo-600 py-2 text-xs font-semibold text-white shadow-xs transition-all hover:bg-indigo-500 active:scale-95 disabled:opacity-40 cursor-pointer"
+            className="flex-1 h-9 flex items-center justify-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 py-2 text-xs font-semibold text-white shadow-xs transition-all active:scale-95 disabled:opacity-40 cursor-pointer"
           >
             <span>{t('continueReading')}</span>
             <ExternalLink className="h-3.5 w-3.5" />
@@ -527,7 +544,7 @@ export function SeriesCard({
           <button
             onClick={handleNext}
             disabled={!series.currentChapter?.url || isLoadingNext}
-            className={`flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-medium transition-all cursor-pointer ${
+            className={`h-9 flex items-center justify-center gap-1.5 rounded-xl border px-3 text-xs font-medium transition-all cursor-pointer ${
               series.hasUpdate || series.nextChapterUrl
                 ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
                 : 'border-border bg-card-hover text-foreground hover:bg-muted'
