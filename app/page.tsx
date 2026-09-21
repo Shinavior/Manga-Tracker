@@ -55,7 +55,34 @@ export default function LibraryPage() {
   }, [selectedStatus, search, sort]);
 
   useEffect(() => {
-    fetchSeries();
+    const checkAuthAndFetch = async () => {
+      try {
+        const storedUser = localStorage.getItem('manga_tracker_user');
+        const isGuest = localStorage.getItem('manga_tracker_guest');
+        if (storedUser || isGuest) {
+          fetchSeries();
+          return;
+        }
+
+        // Check if Supabase has an active session
+        const { createClient } = await import('@/lib/supabase/client');
+        const supabase = createClient();
+        if (supabase) {
+          const { data } = await supabase.auth.getUser();
+          if (data?.user) {
+            fetchSeries();
+            return;
+          }
+        }
+
+        // Neither logged in nor guest: show login page first
+        window.location.href = '/login';
+      } catch {
+        fetchSeries();
+      }
+    };
+
+    checkAuthAndFetch();
   }, [fetchSeries]);
 
   // Compute status counts for filter pills

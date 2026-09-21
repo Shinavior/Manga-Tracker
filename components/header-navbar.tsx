@@ -18,6 +18,19 @@ export function HeaderNavbar() {
   const supabase = createClient();
 
   useEffect(() => {
+    // 1. Check local session
+    try {
+      const stored = localStorage.getItem('manga_tracker_user');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.id) {
+          setUser(parsed);
+        }
+      }
+    } catch {
+      // ignore
+    }
+
     if (!supabase) {
       setSupabaseConfigured(false);
       return;
@@ -36,7 +49,10 @@ export function HeaderNavbar() {
       if (session?.user) {
         setUser({ id: session.user.id, email: session.user.email });
       } else {
-        setUser(null);
+        const local = localStorage.getItem('manga_tracker_user');
+        if (!local) {
+          setUser(null);
+        }
       }
     });
 
@@ -48,8 +64,15 @@ export function HeaderNavbar() {
   const handleLogout = async () => {
     if (supabase) {
       await supabase.auth.signOut();
-      window.location.href = '/';
     }
+    try {
+      localStorage.removeItem('manga_tracker_user');
+      localStorage.removeItem('manga_tracker_guest');
+    } catch {
+      // ignore
+    }
+    setUser(null);
+    window.location.href = '/login';
   };
 
   return (

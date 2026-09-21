@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { BookOpen, Mail, ArrowRight, Loader2, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
+import { BookOpen, Mail, ArrowRight, Loader2, Sparkles, CheckCircle2, AlertCircle, Zap } from 'lucide-react';
 import { usePreferences } from '@/lib/preferences-context';
 
 function LoginForm() {
@@ -31,14 +31,38 @@ function LoginForm() {
     }
   }, [supabase, searchParams]);
 
+  const handleQuickDemoLogin = (targetEmail?: string, displayName?: string) => {
+    const userEmail = targetEmail || email.trim() || 'demo@mangatracker.app';
+    const userObj = {
+      id: '00000000-0000-0000-0000-000000000001',
+      email: userEmail,
+      name: displayName || userEmail.split('@')[0],
+    };
+    try {
+      localStorage.setItem('manga_tracker_user', JSON.stringify(userObj));
+      localStorage.removeItem('manga_tracker_guest');
+    } catch {
+      // ignore
+    }
+    router.push('/');
+  };
+
+  const handleContinueAsGuest = () => {
+    try {
+      localStorage.setItem('manga_tracker_guest', 'true');
+    } catch {
+      // ignore
+    }
+    router.push('/');
+  };
+
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
 
     if (!supabase) {
-      setErrorMessage(
-        'Supabase Auth ยังไม่ได้ตั้งค่าใน .env.local — กรุณาระบุ NEXT_PUBLIC_SUPABASE_URL และ NEXT_PUBLIC_SUPABASE_ANON_KEY เพื่อใช้งาน Magic Link'
-      );
+      // Local demo login with the entered email
+      handleQuickDemoLogin(email.trim());
       return;
     }
 
@@ -67,9 +91,8 @@ function LoginForm() {
 
   const handleGoogleSignIn = async () => {
     if (!supabase) {
-      setErrorMessage(
-        'Supabase Auth ยังไม่ได้ตั้งค่าใน .env.local — กรุณาระบุ NEXT_PUBLIC_SUPABASE_URL และ NEXT_PUBLIC_SUPABASE_ANON_KEY เพื่อใช้งาน Google Sign-In'
-      );
+      // Local demo sign in with Google profile
+      handleQuickDemoLogin('demo.google@mangatracker.app', 'Google User');
       return;
     }
     setIsGoogleLoading(true);
@@ -155,6 +178,23 @@ function LoginForm() {
                 </div>
               )}
 
+              {/* Quick Demo Login (Works offline out of the box) */}
+              <button
+                type="button"
+                onClick={() => handleQuickDemoLogin('demo@mangatracker.app', 'Demo Reader')}
+                className="w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:opacity-95 text-white text-sm font-semibold transition-all cursor-pointer shadow-md shadow-indigo-500/20 active:scale-[0.99]"
+              >
+                <Zap className="h-4 w-4 fill-amber-300 text-amber-300" />
+                <span>⚡ เข้าสู่ระบบแบบด่วน (One-Click Demo)</span>
+              </button>
+
+              <div className="relative flex items-center justify-center">
+                <div className="w-full border-t border-border" />
+                <span className="relative bg-card px-3 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                  หรือเข้าด้วยวิธีอื่น
+                </span>
+              </div>
+
               {/* Google Sign In */}
               <button
                 type="button"
@@ -190,7 +230,7 @@ function LoginForm() {
               <div className="relative flex items-center justify-center">
                 <div className="w-full border-t border-border" />
                 <span className="relative bg-card px-3 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-                  Or with email
+                  อีเมล (Email)
                 </span>
               </div>
 
@@ -217,7 +257,7 @@ function LoginForm() {
                 <button
                   type="submit"
                   disabled={isLoading || isGoogleLoading || !email.trim()}
-                  className="w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-all shadow-xs disabled:opacity-50 cursor-pointer"
+                  className="w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 text-sm font-semibold transition-all shadow-xs disabled:opacity-50 cursor-pointer"
                 >
                   {isLoading ? (
                     <>
@@ -226,7 +266,7 @@ function LoginForm() {
                     </>
                   ) : (
                     <>
-                      <span>Send Magic Link</span>
+                      <span>{isConfigured ? 'Send Magic Link' : 'เข้าสู่ระบบด้วยอีเมลนี้'}</span>
                       <ArrowRight className="h-4 w-4" />
                     </>
                   )}
@@ -235,12 +275,19 @@ function LoginForm() {
             </>
           )}
 
-          <div className="pt-2 border-t border-border/60 text-center">
+          <div className="pt-3 border-t border-border/60 flex items-center justify-between text-xs text-muted-foreground">
+            <button
+              type="button"
+              onClick={handleContinueAsGuest}
+              className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline cursor-pointer"
+            >
+              เข้าใช้งานแบบผู้เยี่ยมชม (Guest Mode) →
+            </button>
             <Link
               href="/"
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors"
             >
-              ← Return to Library
+              ← คลังมังงะ
             </Link>
           </div>
         </div>
