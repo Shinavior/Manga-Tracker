@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ExternalLink,
   ChevronRight,
@@ -90,6 +91,11 @@ export function SeriesCard({
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [selectedMergeId, setSelectedMergeId] = useState<string>('');
   const [isMerging, setIsMerging] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const statusConfig = STATUS_CONFIG[series.status] || STATUS_CONFIG.unread;
   const domain = getDomainName(series.currentChapter?.url, series.seriesKey);
@@ -291,7 +297,9 @@ export function SeriesCard({
           onToggleSelect();
         }
       }}
-      className={`group relative flex flex-col justify-between overflow-visible rounded-2xl border bg-card p-4 transition-all duration-200 shadow-sm hover:shadow-lg hover:-translate-y-0.5 ${
+      className={`group relative flex flex-col justify-between overflow-visible rounded-2xl border bg-card p-4 transition-all duration-200 shadow-sm ${
+        !isMergeModalOpen ? 'hover:shadow-lg hover:-translate-y-0.5' : ''
+      } ${
         isMenuOpen ? 'z-30' : ''
       } ${
         isSelectMode ? 'cursor-pointer select-none' : ''
@@ -571,13 +579,19 @@ export function SeriesCard({
         </div>
       )}
 
-      {/* Merge Series Dialog Modal */}
-      {isMergeModalOpen && (
+      {/* Merge Series Dialog Modal (Portaled to document.body to avoid parent card transform flicker) */}
+      {isMergeModalOpen && mounted && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
-          onClick={(e) => e.stopPropagation()}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-150"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsMergeModalOpen(false);
+          }}
         >
-          <div className="w-full max-w-md bg-card border border-border rounded-2xl p-6 shadow-2xl space-y-4 text-left">
+          <div
+            className="w-full max-w-md bg-card border border-border rounded-2xl p-6 shadow-2xl space-y-4 text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between border-b border-border pb-3">
               <h3 className="text-base font-bold text-foreground flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-indigo-500" />
@@ -585,7 +599,7 @@ export function SeriesCard({
               </h3>
               <button
                 onClick={() => setIsMergeModalOpen(false)}
-                className="p-1 rounded-lg text-gray-400 hover:text-foreground hover:bg-card-hover"
+                className="p-1 rounded-lg text-gray-400 hover:text-foreground hover:bg-card-hover cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -670,7 +684,7 @@ export function SeriesCard({
               <button
                 type="button"
                 onClick={() => setIsMergeModalOpen(false)}
-                className="flex-1 py-2 rounded-xl bg-card-hover text-foreground text-xs font-medium transition-colors"
+                className="flex-1 py-2 rounded-xl bg-card-hover text-foreground text-xs font-medium transition-colors cursor-pointer"
               >
                 {t('cancel')}
               </button>
@@ -678,13 +692,14 @@ export function SeriesCard({
                 type="button"
                 onClick={handleExecuteMerge}
                 disabled={!selectedMergeId || isMerging}
-                className="flex-1 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold shadow-lg shadow-indigo-600/20 transition-colors"
+                className="flex-1 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold shadow-lg shadow-indigo-600/20 transition-colors cursor-pointer"
               >
                 {isMerging ? t('merging') : t('mergeButton')}
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
