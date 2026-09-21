@@ -188,6 +188,7 @@ export function UpdateCheckWidget({
                       <img
                         src={matchingSeries.coverUrl}
                         alt={item.title}
+                        referrerPolicy="no-referrer"
                         className="h-10 w-8 rounded-lg object-cover border border-border shrink-0"
                       />
                     ) : (

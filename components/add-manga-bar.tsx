@@ -293,6 +293,7 @@ export function AddMangaBar({ onSaveSuccess }: AddMangaBarProps) {
                   <img
                     src={preview.coverUrl}
                     alt={preview.seriesTitle || 'Cover'}
+                    referrerPolicy="no-referrer"
                     className="h-16 w-12 rounded-lg object-cover border border-border"
                   />
                 ) : (

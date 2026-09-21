@@ -126,7 +126,7 @@ export default function TrashPage() {
               <div key={ch.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-card-hover transition-colors">
                 <div className="flex items-center gap-4 min-w-0">
                   {ch.seriesCoverUrl ? (
-                    <img src={ch.seriesCoverUrl} alt={ch.seriesTitle} className="w-12 h-16 object-cover rounded-lg bg-muted border border-border flex-shrink-0" />
+                    <img src={ch.seriesCoverUrl} alt={ch.seriesTitle} referrerPolicy="no-referrer" className="w-12 h-16 object-cover rounded-lg bg-muted border border-border flex-shrink-0" />
                   ) : (
                     <div className="w-12 h-16 rounded-lg bg-muted border border-border flex items-center justify-center text-muted-foreground flex-shrink-0">📖</div>
                   )}

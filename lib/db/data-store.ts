@@ -1699,6 +1699,166 @@ export class DataStore {
     },
     dryRun = false
   ): any {
+    if (db) {
+      return (async () => {
+        const preview: Array<{
+          url: string;
+          seriesKey: string;
+          seriesTitle: string;
+          chapterLabel: string;
+          isNewSeries: boolean;
+          existingSeriesId?: string;
+        }> = [];
+
+        let newSeriesCount = 0;
+        let existingSeriesCount = 0;
+        let chaptersCount = 0;
+
+        const seriesList = backupData.series || [];
+
+        for (const s of seriesList) {
+          const existing = await DataStore.findSeriesByKey(userId, s.seriesKey);
+          const isNew = !existing;
+          if (isNew) {
+            newSeriesCount++;
+          } else {
+            existingSeriesCount++;
+          }
+
+          const incomingChapters = s.chapters || [];
+          const currentCh = incomingChapters.find((c) => c.isCurrent) || incomingChapters[0];
+
+          preview.push({
+            url: currentCh?.url || '',
+            seriesKey: s.seriesKey,
+            seriesTitle: s.customTitle || s.autoTitle || 'Untitled Series',
+            chapterLabel: currentCh
+              ? `${currentCh.chapterLabel} (${incomingChapters.length} ch)`
+              : `${incomingChapters.length} ch`,
+            isNewSeries: isNew,
+            existingSeriesId: existing?.id,
+          });
+
+          if (!dryRun) {
+            const targetSeriesId = existing?.id || s.id || randomUUID();
+            const targetSeriesValues = {
+              id: targetSeriesId,
+              userId,
+              seriesKey: s.seriesKey,
+              source: s.source || 'generic',
+              urlPattern: s.urlPattern || null,
+              autoTitle: s.autoTitle || null,
+              customTitle: s.customTitle || existing?.customTitle || null,
+              coverUrl: s.coverUrl || existing?.coverUrl || null,
+              status: s.status || 'unread',
+              tags: Array.from(new Set([...(existing?.tags || []), ...(s.tags || [])])),
+              language: s.language || null,
+              confidence: s.confidence || 'high',
+              needsReview: s.needsReview || false,
+              lastReadAt: s.lastReadAt ? new Date(s.lastReadAt) : null,
+              lastCheckedAt: s.lastCheckedAt ? new Date(s.lastCheckedAt) : null,
+              hasUpdate: s.hasUpdate || false,
+              nextChapterUrl: s.nextChapterUrl || null,
+              createdAt: s.createdAt ? new Date(s.createdAt) : new Date(),
+              updatedAt: new Date(),
+            };
+
+            if (existing) {
+              await db
+                .update(schema.series)
+                .set(targetSeriesValues)
+                .where(eq(schema.series.id, targetSeriesId));
+            } else {
+              await db.insert(schema.series).values(targetSeriesValues);
+            }
+
+            let activeCurrentChapterId: string | null = null;
+            for (const ch of incomingChapters) {
+              const existingRows = await db
+                .select()
+                .from(schema.chapters)
+                .where(
+                  and(
+                    eq(schema.chapters.seriesId, targetSeriesId),
+                    eq(schema.chapters.url, ch.url)
+                  )
+                )
+                .limit(1);
+
+              const existingCh = existingRows[0];
+              const chId = existingCh?.id || ch.id || randomUUID();
+
+              const chValues = {
+                id: chId,
+                seriesId: targetSeriesId,
+                url: ch.url,
+                chapterLabel: ch.chapterLabel,
+                chapterNumber: ch.chapterNumber != null ? String(ch.chapterNumber) : null,
+                isCurrent: Boolean(ch.isCurrent),
+                archivedAt: ch.archivedAt ? new Date(ch.archivedAt) : null,
+                purgeAt: ch.purgeAt ? new Date(ch.purgeAt) : null,
+                restoredCount: ch.restoredCount || 0,
+                savedAt: ch.savedAt ? new Date(ch.savedAt) : new Date(),
+              };
+
+              if (existingCh) {
+                await db
+                  .update(schema.chapters)
+                  .set(chValues)
+                  .where(eq(schema.chapters.id, chId));
+              } else {
+                await db.insert(schema.chapters).values(chValues);
+              }
+
+              chaptersCount++;
+
+              if (chValues.isCurrent) {
+                activeCurrentChapterId = chId;
+              }
+            }
+
+            if (!activeCurrentChapterId && incomingChapters.length > 0) {
+              const allChapters = await db
+                .select()
+                .from(schema.chapters)
+                .where(eq(schema.chapters.seriesId, targetSeriesId))
+                .orderBy(desc(schema.chapters.savedAt))
+                .limit(1);
+
+              if (allChapters.length > 0) {
+                activeCurrentChapterId = allChapters[0].id;
+                await db
+                  .update(schema.chapters)
+                  .set({ isCurrent: true })
+                  .where(eq(schema.chapters.id, activeCurrentChapterId));
+              }
+            }
+
+            if (activeCurrentChapterId) {
+              await db
+                .update(schema.series)
+                .set({ currentChapterId: activeCurrentChapterId })
+                .where(eq(schema.series.id, targetSeriesId));
+            }
+          }
+        }
+
+        return {
+          dryRun,
+          totalItems: seriesList.length,
+          seriesCount: seriesList.length,
+          chaptersCount: dryRun
+            ? seriesList.reduce((acc, s) => acc + (s.chapters?.length || 0), 0)
+            : chaptersCount,
+          newSeriesCount,
+          existingSeriesCount,
+          preview,
+          savedCount: chaptersCount,
+        };
+      })();
+    }
+
+    // In-memory fallback
     const preview: Array<{
       url: string;
       seriesKey: string;

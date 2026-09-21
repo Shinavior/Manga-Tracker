@@ -310,6 +310,7 @@ export function SeriesCard({
               <img
                 src={series.coverUrl}
                 alt={series.title}
+                referrerPolicy="no-referrer"
                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
             ) : (
@@ -624,6 +625,7 @@ export function SeriesCard({
                               <img
                                 src={sug.coverUrl}
                                 alt={sug.title}
+                                referrerPolicy="no-referrer"
                                 className="w-8 h-10 object-cover rounded bg-background border border-border flex-shrink-0"
                               />
                             )}

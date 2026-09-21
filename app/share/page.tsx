@@ -137,6 +137,7 @@ function ShareContent() {
               <img
                 src={saveResult.series.coverUrl}
                 alt={saveResult.series.title}
+                referrerPolicy="no-referrer"
                 className="w-14 h-20 object-cover rounded-lg bg-zinc-800 border border-zinc-700 flex-shrink-0"
               />
             )}

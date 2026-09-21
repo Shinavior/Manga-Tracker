@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: 'Manga Tracker — Smart Chapter Ingestion & Library',
   description: 'Never lose your place. Auto-merges chapters into series with one-tap continue reading.',
   manifest: '/manifest.json',
+  referrer: 'no-referrer',
 };
 
 export default function RootLayout({
