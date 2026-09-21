@@ -636,19 +636,23 @@ describe('Manga Resolver Unit Tests', () => {
     it('resolves Thai manga URLs with attached chapter slugs and merges them', async () => {
       vi.stubGlobal(
         'fetch',
-        vi.fn(async () => ({
-          ok: true,
-          status: 200,
-          text: async () => `
-            <!DOCTYPE html>
-            <html>
-              <head>
-                <title>อ่านมังงะ Delusional Hunter World ตอนที่ 1 แปลไทย | Dark-Manga</title>
-              </head>
-              <body><h1>Delusional Hunter World</h1></body>
-            </html>
-          `,
-        }))
+        vi.fn(async (input: RequestInfo | URL) => {
+          const urlStr = input.toString();
+          const chNum = urlStr.includes('-2') ? '2' : '1';
+          return {
+            ok: true,
+            status: 200,
+            text: async () => `
+              <!DOCTYPE html>
+              <html>
+                <head>
+                  <title>อ่านมังงะ Delusional Hunter World ตอนที่ ${chNum} แปลไทย | Dark-Manga</title>
+                </head>
+                <body><h1>Delusional Hunter World</h1></body>
+              </html>
+            `,
+          };
+        })
       );
 
       const adapter = new GenericNumericAdapter();

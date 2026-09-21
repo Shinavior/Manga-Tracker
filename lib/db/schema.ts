@@ -136,3 +136,24 @@ export const settings = pgTable('settings', {
   autoCheckUpdates: boolean('auto_check_updates').notNull().default(true),
   theme: text('theme').notNull().default('system'),
 });
+
+// ============ feedback ============
+export const feedback = pgTable(
+  'feedback',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+    type: text('type').notNull(), // 'bug' | 'feature' | 'general'
+    message: text('message').notNull(),
+    pageContext: text('page_context'),
+    appVersion: text('app_version'),
+    userAgent: text('user_agent'),
+    screenshotUrl: text('screenshot_url'),
+    status: text('status').notNull().default('open'), // 'open' | 'reviewing' | 'resolved' | 'wontfix'
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    feedbackStatusIdx: index('feedback_status_idx').on(table.status, table.createdAt),
+  })
+);
+

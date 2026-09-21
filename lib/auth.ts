@@ -1,11 +1,13 @@
 import { ResolverError } from './resolver/types';
 import { DataStore } from './db/data-store';
+import { createClient } from './supabase/server';
 
 export const DEFAULT_USER_ID = process.env.SINGLE_USER_ID || '00000000-0000-0000-0000-000000000001';
 
 export interface AuthContext {
   userId: string;
   tokenId?: string;
+  email?: string | null;
   authMethod: 'single_user' | 'api_token' | 'bearer_session';
 }
 
@@ -42,7 +44,27 @@ export async function authenticateRequest(request: Request): Promise<AuthContext
     }
   }
 
-  // 3. Fallback to single_user mode if enabled
+  // 3. Check Supabase User Session (if configured)
+  try {
+    const supabase = await createClient();
+    if (supabase) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user?.id) {
+        return {
+          userId: user.id,
+          email: user.email,
+          authMethod: 'bearer_session',
+        };
+      }
+    }
+  } catch {
+    // Supabase auth check failed or unconfigured, proceed to fallback
+  }
+
+  // 4. Fallback to single_user mode if enabled
   const authMode = process.env.AUTH_MODE || 'single_user';
   if (authMode === 'single_user') {
     return { userId: DEFAULT_USER_ID, authMethod: 'single_user' };
@@ -61,4 +83,3 @@ export async function authenticateCronRequest(request: Request): Promise<AuthCon
 
   return authenticateRequest(request);
 }
-

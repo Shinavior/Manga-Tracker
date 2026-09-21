@@ -58,6 +58,46 @@ export default function SettingsPage() {
   const [runningUpdateCheck, setRunningUpdateCheck] = useState(false);
   const [updateCheckResult, setUpdateCheckResult] = useState<string | null>(null);
 
+  // Feedback state
+  const [feedbackType, setFeedbackType] = useState<'bug' | 'feature' | 'general'>('bug');
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [feedbackScreenshot, setFeedbackScreenshot] = useState('');
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  const [feedbackSent, setFeedbackSent] = useState(false);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
+
+  const handleSubmitFeedback = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feedbackMessage.trim()) return;
+    setSubmittingFeedback(true);
+    setFeedbackError(null);
+    try {
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: feedbackType,
+          message: feedbackMessage.trim(),
+          screenshotUrl: feedbackScreenshot.trim() || undefined,
+          pageContext: '/settings',
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setFeedbackSent(true);
+        setFeedbackMessage('');
+        setFeedbackScreenshot('');
+        setTimeout(() => setFeedbackSent(false), 5000);
+      } else {
+        setFeedbackError(data.error || 'Failed to submit feedback');
+      }
+    } catch (err) {
+      setFeedbackError((err as Error).message);
+    } finally {
+      setSubmittingFeedback(false);
+    }
+  };
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setBaseUrl(window.location.origin);
@@ -757,6 +797,108 @@ export default function SettingsPage() {
             </ol>
           </div>
         </div>
+      </section>
+
+      {/* 6. Feedback & Bug Reports (Section 15) */}
+      <section id="feedback" className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-6">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+            Feedback & Bug Reports
+          </h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            Found an unresolvable URL, an unexpected chapter parsing issue, or have an idea? Tell us!
+          </p>
+        </div>
+
+        {feedbackSent ? (
+          <div className="p-5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs flex items-center gap-3">
+            <span className="text-xl">✅</span>
+            <div>
+              <div className="font-semibold text-sm">Thanks — we&apos;ll take a look!</div>
+              <p className="text-muted-foreground mt-0.5">Your feedback has been submitted directly to the developer.</p>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmitFeedback} className="space-y-4 bg-background border border-border rounded-xl p-5">
+            {feedbackError && (
+              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs">
+                {feedbackError}
+              </div>
+            )}
+
+            {/* Type selector */}
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                Feedback Type
+              </label>
+              <div className="flex gap-2">
+                {[
+                  { id: 'bug', label: '🐛 Bug Report' },
+                  { id: 'feature', label: '💡 Feature Request' },
+                  { id: 'general', label: '💬 General Feedback' },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setFeedbackType(item.id as 'bug' | 'feature' | 'general')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
+                      feedbackType === item.id
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                        : 'bg-card border-border text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Message input */}
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                Message / Description
+              </label>
+              <textarea
+                required
+                rows={4}
+                value={feedbackMessage}
+                onChange={(e) => setFeedbackMessage(e.target.value)}
+                placeholder="Describe what happened, including any manga chapter URL that produced unexpected results..."
+                className="w-full p-3 rounded-xl bg-card border border-border text-foreground text-xs placeholder:text-muted-foreground focus:outline-none focus:border-indigo-500 resize-y"
+              />
+            </div>
+
+            {/* Screenshot URL (optional) */}
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                Screenshot URL (Optional)
+              </label>
+              <input
+                type="url"
+                value={feedbackScreenshot}
+                onChange={(e) => setFeedbackScreenshot(e.target.value)}
+                placeholder="https://imgur.com/... or image link"
+                className="w-full px-3 py-2 rounded-xl bg-card border border-border text-foreground text-xs placeholder:text-muted-foreground focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-border">
+              <span className="text-[11px] text-muted-foreground">
+                App version: v{process.env.NEXT_PUBLIC_APP_VERSION || '0.1.0-beta'}
+              </span>
+              <button
+                type="submit"
+                disabled={submittingFeedback || !feedbackMessage.trim()}
+                className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+              >
+                {submittingFeedback ? 'Sending...' : 'Submit Feedback'}
+              </button>
+            </div>
+          </form>
+        )}
       </section>
     </div>
   );
