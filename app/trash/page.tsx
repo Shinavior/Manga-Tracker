@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -99,7 +99,7 @@ export default function TrashPage() {
 
       {loading ? (
         <div className="text-center py-16 text-muted-foreground">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-rose-500 mb-3"></div>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-rose-500 border-t-transparent mb-3"></div>
           <p className="text-xs">{t('trashLoading')}</p>
         </div>
       ) : chapters.length === 0 ? (

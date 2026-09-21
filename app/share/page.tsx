@@ -107,7 +107,7 @@ function ShareContent() {
       {/* Loading state */}
       {loading && (
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 text-center shadow-xl">
-          <div className="inline-block animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-500 mb-4"></div>
+          <div className="inline-block animate-spin rounded-full h-10 w-10 border-2 border-indigo-500 border-t-transparent mb-4"></div>
           <h3 className="text-lg font-medium text-white">Saving Chapter...</h3>
           <p className="text-xs text-zinc-400 mt-1 truncate max-w-sm mx-auto">{extractedUrl}</p>
         </div>

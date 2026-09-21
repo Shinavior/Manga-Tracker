@@ -291,14 +291,14 @@ export function SeriesCard({
           onToggleSelect();
         }
       }}
-      className={`group relative flex flex-col justify-between overflow-visible rounded-2xl border bg-card p-4 transition-all duration-200 shadow-sm hover:shadow-xl ${
+      className={`group relative flex flex-col justify-between overflow-visible rounded-2xl border bg-card p-4 transition-all duration-200 shadow-sm hover:shadow-lg hover:-translate-y-0.5 ${
         isSelectMode ? 'cursor-pointer select-none' : ''
       } ${
         isSelected
-          ? 'ring-2 ring-purple-600 border-purple-500 bg-purple-500/10 dark:bg-purple-950/20 shadow-purple-500/10'
+          ? 'ring-2 ring-indigo-500 border-indigo-500 bg-indigo-500/10 dark:bg-indigo-950/20 shadow-indigo-500/10'
           : series.needsReview
-          ? 'border-l-4 border-l-amber-500 border-border hover:border-purple-500/40'
-          : 'border-border hover:border-purple-500/40'
+          ? 'border-amber-500/50 bg-amber-500/[0.02] hover:border-amber-500/80'
+          : 'border-border hover:border-indigo-500/40'
       }`}
     >
       <div>
@@ -313,8 +313,8 @@ export function SeriesCard({
                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
             ) : (
-              <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-purple-500/20 to-indigo-500/20 p-1 text-center">
-                <span className="text-lg font-bold text-purple-600 dark:text-purple-400">
+              <div className="flex h-full w-full flex-col items-center justify-center bg-indigo-500/10 p-1 text-center">
+                <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
                   {series.title.charAt(0).toUpperCase()}
                 </span>
               </div>
@@ -326,8 +326,8 @@ export function SeriesCard({
                 <div
                   className={`h-5 w-5 rounded-md flex items-center justify-center transition-colors ${
                     isSelected
-                      ? 'bg-purple-600 text-white shadow-sm'
-                      : 'bg-black/60 text-white/70 backdrop-blur-sm border border-white/30 hover:bg-purple-600'
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'bg-black/60 text-white/70 backdrop-blur-sm border border-white/30 hover:bg-indigo-600'
                   }`}
                 >
                   {isSelected ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}

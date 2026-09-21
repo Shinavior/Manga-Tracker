@@ -393,7 +393,7 @@ export function AddMangaBar({ onSaveSuccess }: AddMangaBarProps) {
             <div className="space-y-1.5 pt-1">
               <div className="w-full h-2 rounded-full bg-background overflow-hidden border border-border">
                 <div
-                  className="h-full bg-gradient-to-r from-purple-600 to-indigo-500 transition-all duration-300"
+                  className="h-full bg-indigo-600 dark:bg-indigo-500 transition-all duration-300"
                   style={{
                     width: `${Math.round(
                       (bulkProgress.filter((p) => p.status === 'success' || p.status === 'error').length /
