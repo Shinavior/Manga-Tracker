@@ -33,7 +33,14 @@ function LoginForm() {
 
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !supabase) return;
+    if (!email.trim()) return;
+
+    if (!supabase) {
+      setErrorMessage(
+        'Supabase Auth ยังไม่ได้ตั้งค่าใน .env.local — กรุณาระบุ NEXT_PUBLIC_SUPABASE_URL และ NEXT_PUBLIC_SUPABASE_ANON_KEY เพื่อใช้งาน Magic Link'
+      );
+      return;
+    }
 
     setIsLoading(true);
     setErrorMessage(null);
@@ -59,7 +66,12 @@ function LoginForm() {
   };
 
   const handleGoogleSignIn = async () => {
-    if (!supabase) return;
+    if (!supabase) {
+      setErrorMessage(
+        'Supabase Auth ยังไม่ได้ตั้งค่าใน .env.local — กรุณาระบุ NEXT_PUBLIC_SUPABASE_URL และ NEXT_PUBLIC_SUPABASE_ANON_KEY เพื่อใช้งาน Google Sign-In'
+      );
+      return;
+    }
     setIsGoogleLoading(true);
     setErrorMessage(null);
 
@@ -93,32 +105,28 @@ function LoginForm() {
             {t('appTitle') || 'Manga Tracker'}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Sign in to sync your library across devices
+            เข้าสู่ระบบเพื่อซิงก์คลังมังงะข้ามอุปกรณ์ของคุณ
           </p>
         </div>
 
         {/* Main Card */}
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8 space-y-5">
-          {!isConfigured ? (
-            <div className="space-y-4 text-center py-2">
-              <div className="inline-flex p-3 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                <Sparkles className="h-6 w-6" />
+          {!isConfigured && (
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3.5 text-xs text-amber-700 dark:text-amber-300 space-y-1.5">
+              <div className="flex items-center gap-1.5 font-semibold">
+                <Sparkles className="h-4 w-4 shrink-0 text-amber-500" />
+                <span>โหมดผู้ใช้งานเดี่ยว (Single-User Mode)</span>
               </div>
-              <div className="space-y-1">
-                <h3 className="text-base font-semibold text-foreground">Single-User Mode Active</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Supabase Auth environment variables are not yet configured. The app runs in single-user mode locally without requiring sign-in.
-                </p>
+              <p className="text-[11px] leading-relaxed text-amber-800/80 dark:text-amber-200/80">
+                ขณะนี้ระบบทำงานแบบออฟไลน์/ผู้ใช้เดี่ยว คุณสามารถใช้งานคลังมังงะได้ทันทีโดยไม่ต้องเข้าสู่ระบบ
+              </p>
+              <div className="pt-1 text-[11px] text-amber-900/70 dark:text-amber-300/70">
+                หากต้องการเปิดระบบ Multi-User ให้ตั้งค่า <code className="rounded bg-black/10 dark:bg-white/10 px-1 py-0.5 font-mono">NEXT_PUBLIC_SUPABASE_URL</code> ใน <code className="rounded bg-black/10 dark:bg-white/10 px-1 py-0.5 font-mono">.env.local</code>
               </div>
-              <Link
-                href="/"
-                className="inline-flex items-center justify-center gap-2 w-full h-10 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-500 transition-colors shadow-xs"
-              >
-                <span>{t('backToLibrary') || 'Go to Library'}</span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
             </div>
-          ) : magicSent ? (
+          )}
+
+          {magicSent ? (
             <div className="space-y-4 text-center py-4">
               <div className="inline-flex p-3 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                 <CheckCircle2 className="h-8 w-8" />
