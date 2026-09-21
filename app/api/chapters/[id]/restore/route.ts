@@ -10,7 +10,7 @@ export async function POST(
     const auth = await authenticateRequest(request);
     const { id } = await props.params;
 
-    const result = DataStore.restoreChapter(auth.userId, id);
+    const result = await DataStore.restoreChapter(auth.userId, id);
     if (!result.success) {
       return NextResponse.json(
         { error: { code: 'NOT_FOUND', message: result.message || 'Failed to restore chapter' }, message: result.message || 'Failed to restore chapter' },

@@ -10,7 +10,7 @@ export async function GET(
     const auth = await authenticateRequest(req);
     const { id } = await params;
 
-    const series = DataStore.findSeriesById(auth.userId, id);
+    const series = await DataStore.findSeriesById(auth.userId, id);
     if (!series) {
       return NextResponse.json(
         { error: { code: 'NOT_FOUND', message: 'Series not found' } },
@@ -18,8 +18,8 @@ export async function GET(
       );
     }
 
-    const currentChapter = DataStore.getCurrentChapter(series.id);
-    const chapters = DataStore.getChaptersForSeries(series.id);
+    const currentChapter = await DataStore.getCurrentChapter(series.id);
+    const chapters = await DataStore.getChaptersForSeries(series.id);
 
     return NextResponse.json({
       series: {
@@ -46,7 +46,7 @@ export async function PATCH(
     const { id } = await params;
     const body = await req.json();
 
-    const updated = DataStore.updateSeries(auth.userId, id, {
+    const updated = await DataStore.updateSeries(auth.userId, id, {
       customTitle: body.title,
       status: body.status,
       tags: body.tags,
@@ -82,7 +82,7 @@ export async function DELETE(
     const auth = await authenticateRequest(req);
     const { id } = await params;
 
-    const deleted = DataStore.deleteSeries(auth.userId, id);
+    const deleted = await DataStore.deleteSeries(auth.userId, id);
     if (!deleted) {
       return NextResponse.json(
         { error: { code: 'NOT_FOUND', message: 'Series not found' } },

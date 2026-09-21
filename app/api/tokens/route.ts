@@ -5,7 +5,8 @@ import { DataStore } from '@/lib/db/data-store';
 export async function GET(request: Request) {
   try {
     const auth = await authenticateRequest(request);
-    const tokens = DataStore.listApiTokens(auth.userId).map((t) => ({
+    const tokenList = await DataStore.listApiTokens(auth.userId);
+    const tokens = tokenList.map((t: any) => ({
       id: t.id,
       name: t.name,
       lastFour: t.lastFour,
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}));
     const name = typeof body.name === 'string' && body.name.trim() ? body.name.trim() : 'API Token';
 
-    const { record, rawToken } = DataStore.createApiToken(auth.userId, name);
+    const { record, rawToken } = await DataStore.createApiToken(auth.userId, name);
 
     return NextResponse.json(
       {

@@ -10,7 +10,7 @@ export async function GET(
     const auth = await authenticateRequest(request);
     const { id } = await props.params;
 
-    const series = DataStore.findSeriesById(auth.userId, id);
+    const series = await DataStore.findSeriesById(auth.userId, id);
     if (!series) {
       return NextResponse.json(
         { error: { code: 'NOT_FOUND', message: 'Series not found' }, message: 'Series not found' },
@@ -19,7 +19,7 @@ export async function GET(
     }
 
     const title = series.customTitle || series.autoTitle || '';
-    const suggestions = DataStore.getMergeSuggestions(auth.userId, id, title);
+    const suggestions = await DataStore.getMergeSuggestions(auth.userId, id, title);
 
     return NextResponse.json({ suggestions });
   } catch (error) {
@@ -47,7 +47,7 @@ export async function POST(
       );
     }
 
-    const result = DataStore.mergeSeries(auth.userId, targetSeriesId, sourceSeriesId);
+    const result = await DataStore.mergeSeries(auth.userId, targetSeriesId, sourceSeriesId);
     if (!result.success) {
       return NextResponse.json(
         { error: { code: 'MERGE_FAILED', message: result.message || 'Merge failed' }, message: result.message || 'Merge failed' },

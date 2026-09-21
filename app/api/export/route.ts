@@ -5,7 +5,7 @@ import { DataStore } from '@/lib/db/data-store';
 export async function GET(req: NextRequest) {
   try {
     const auth = await authenticateRequest(req);
-    const data = DataStore.exportData(auth.userId);
+    const data = await DataStore.exportData(auth.userId);
 
     const dateStr = new Date().toISOString().split('T')[0];
     const filename = `manga-tracker-backup-${dateStr}.json`;

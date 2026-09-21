@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const res = DataStore.undo(auth.userId, body.token);
+    const res = await DataStore.undo(auth.userId, body.token);
     if (!res.success) {
       return NextResponse.json(
         { error: { code: 'CONFLICT', message: res.message } },

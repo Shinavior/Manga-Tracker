@@ -10,7 +10,7 @@ export async function DELETE(
     const auth = await authenticateRequest(request);
     const { id } = await props.params;
 
-    const success = DataStore.revokeApiToken(auth.userId, id);
+    const success = await DataStore.revokeApiToken(auth.userId, id);
     if (!success) {
       return NextResponse.json(
         { error: { code: 'NOT_FOUND', message: 'Token not found or already revoked' }, message: 'Token not found or already revoked' },

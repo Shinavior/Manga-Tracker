@@ -10,7 +10,7 @@ export async function POST(
     const auth = await authenticateRequest(req);
     const { id } = await params;
 
-    const series = DataStore.markSeriesRead(auth.userId, id);
+    const series = await DataStore.markSeriesRead(auth.userId, id);
     if (!series) {
       return NextResponse.json(
         { error: { code: 'NOT_FOUND', message: 'Series not found' } },

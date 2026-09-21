@@ -17,7 +17,7 @@ export async function authenticateRequest(request: Request): Promise<AuthContext
     const url = new URL(request.url);
     const queryToken = url.searchParams.get('k') || url.searchParams.get('token');
     if (queryToken) {
-      const verified = DataStore.verifyApiToken(queryToken);
+      const verified = await DataStore.verifyApiToken(queryToken);
       if (verified) {
         return { userId: verified.userId, tokenId: verified.tokenId, authMethod: 'api_token' };
       }
@@ -32,7 +32,7 @@ export async function authenticateRequest(request: Request): Promise<AuthContext
     const rawToken = authHeader.slice(7).trim();
     if (rawToken) {
       // Check if it's a stored API token
-      const verified = DataStore.verifyApiToken(rawToken);
+      const verified = await DataStore.verifyApiToken(rawToken);
       if (verified) {
         return { userId: verified.userId, tokenId: verified.tokenId, authMethod: 'api_token' };
       }

@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     const status = statusParam ? statusParam.split(',').map((s) => s.trim()) : undefined;
     const tag = tagParam ? tagParam.split(',').map((t) => t.trim()) : undefined;
 
-    const { items, total } = DataStore.listSeries(auth.userId, {
+    const { items, total } = await DataStore.listSeries(auth.userId, {
       status,
       tag,
       q,
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
       offset,
     });
 
-    const formattedItems = items.map((s) => ({
+    const formattedItems = items.map((s: any) => ({
       id: s.id,
       title: s.customTitle || s.autoTitle || 'Untitled Series',
       customTitle: s.customTitle,

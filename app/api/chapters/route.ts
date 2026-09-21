@@ -9,7 +9,8 @@ export async function GET(request: Request) {
     const archivedOnly = url.searchParams.get('archived') === 'true';
 
     if (archivedOnly) {
-      const chapters = DataStore.listArchivedChapters(auth.userId).map((ch) => ({
+      const archivedList = await DataStore.listArchivedChapters(auth.userId);
+      const chapters = archivedList.map((ch: any) => ({
         id: ch.id,
         seriesId: ch.seriesId,
         seriesTitle: ch.seriesTitle,

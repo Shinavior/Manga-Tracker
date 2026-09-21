@@ -15,7 +15,7 @@ export async function GET(
     const auth = await authenticateRequest(req);
     const { id } = await params;
 
-    const series = DataStore.findSeriesById(auth.userId, id);
+    const series = await DataStore.findSeriesById(auth.userId, id);
     if (!series) {
       return NextResponse.json(
         { error: { code: 'NOT_FOUND', message: 'Series not found' } },
@@ -23,7 +23,7 @@ export async function GET(
       );
     }
 
-    const currentChapter = DataStore.getCurrentChapter(series.id);
+    const currentChapter = await DataStore.getCurrentChapter(series.id);
     const currentChapterNumber = currentChapter?.chapterNumber ?? undefined;
 
     // Check if next chapter URL is already cached and not stale.

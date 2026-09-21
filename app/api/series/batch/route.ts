@@ -18,7 +18,7 @@ export async function DELETE(req: NextRequest) {
     let deletedCount = 0;
     for (const id of seriesIds) {
       if (typeof id === 'string') {
-        const deleted = DataStore.deleteSeries(auth.userId, id);
+        const deleted = await DataStore.deleteSeries(auth.userId, id);
         if (deleted) {
           deletedCount++;
         }

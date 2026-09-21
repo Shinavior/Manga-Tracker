@@ -9,4 +9,3 @@ export const db = client ? drizzle(client, { schema }) : null;
 
 export * from './schema';
 export * from './types';
-export * from './data-store';

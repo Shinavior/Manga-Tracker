@@ -5,7 +5,7 @@ import { DataStore } from '@/lib/db/data-store';
 export async function POST(req: NextRequest) {
   try {
     await authenticateCronRequest(req);
-    const result = DataStore.purgeExpiredChapters();
+    const result = await DataStore.purgeExpiredChapters();
 
     return NextResponse.json({
       success: true,

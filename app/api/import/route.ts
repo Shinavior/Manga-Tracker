@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
           const parsedJson = JSON.parse(fileContent);
           // Check if it's a direct MangaTracker backup file (has version and series array)
           if (parsedJson.version && Array.isArray(parsedJson.series)) {
-            const backupResult = DataStore.restoreBackup(auth.userId, parsedJson, isDryRun);
+            const backupResult = await DataStore.restoreBackup(auth.userId, parsedJson, isDryRun);
             return NextResponse.json({
               success: true,
               ...backupResult,
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
       }
 
       if (body.version && Array.isArray(body.series)) {
-        const backupResult = DataStore.restoreBackup(auth.userId, body, isDryRun);
+        const backupResult = await DataStore.restoreBackup(auth.userId, body, isDryRun);
         return NextResponse.json({
           success: true,
           ...backupResult,
