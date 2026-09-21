@@ -292,6 +292,8 @@ export function SeriesCard({
         }
       }}
       className={`group relative flex flex-col justify-between overflow-visible rounded-2xl border bg-card p-4 transition-all duration-200 shadow-sm hover:shadow-lg hover:-translate-y-0.5 ${
+        isMenuOpen ? 'z-30' : ''
+      } ${
         isSelectMode ? 'cursor-pointer select-none' : ''
       } ${
         isSelected
@@ -385,7 +387,7 @@ export function SeriesCard({
                           className="fixed inset-0 z-20"
                           onClick={() => setIsMenuOpen(false)}
                         />
-                        <div className="absolute right-0 top-full z-30 mt-1 w-48 rounded-xl border border-border bg-card p-1.5 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-100 divide-y divide-border/60">
+                        <div className="absolute right-0 top-full z-30 mt-1 w-48 max-h-[85vh] overflow-y-auto rounded-xl border border-border bg-card p-1.5 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-100 divide-y divide-border/60">
                           <div className="py-1">
                             <button
                               onClick={() => {
