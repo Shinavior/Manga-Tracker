@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { ArrowLeft, Loader2, ShieldCheck, RefreshCw, ExternalLink } from 'lucide-react';
+import { Loader2, ExternalLink } from 'lucide-react';
+import { AdminNav } from '@/components/admin/admin-nav';
 
 interface FeedbackItem {
   id: string;
@@ -67,34 +67,12 @@ export default function AdminFeedbackPage() {
 
   return (
     <div className="max-w-6xl mx-auto py-8 px-4 space-y-6">
-      <div className="flex items-center justify-between border-b border-border pb-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-indigo-500" />
-            <h1 className="text-xl font-bold text-foreground">Admin Feedback Inbox</h1>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Review user bug reports, feature requests, and beta suggestions
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={fetchFeedback}
-            disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-card hover:bg-card-hover text-xs text-foreground cursor-pointer shadow-xs"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
-          </button>
-          <Link
-            href="/"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-card hover:bg-card-hover text-xs text-foreground shadow-xs"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Library</span>
-          </Link>
-        </div>
-      </div>
+      <AdminNav
+        title="Admin Feedback Inbox"
+        subtitle="Review user bug reports, feature requests, and beta suggestions"
+        onRefresh={fetchFeedback}
+        loading={loading}
+      />
 
       {error ? (
         <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs">

@@ -1,26 +1,8 @@
 import { NextResponse } from 'next/server';
-import { authenticateRequest } from '@/lib/auth';
 import { db, feedback } from '@/lib/db/client';
 import { eq, desc } from 'drizzle-orm';
 import { memoryFeedbackStore, FeedbackRecord } from '@/lib/db/feedback-store';
-
-async function verifyAdmin(request: Request) {
-  const adminEmail = process.env.ADMIN_EMAIL;
-  try {
-    const auth = await authenticateRequest(request);
-    // In multi_user mode, verify email matches ADMIN_EMAIL
-    if (adminEmail && auth.email && auth.email.toLowerCase() === adminEmail.toLowerCase()) {
-      return true;
-    }
-    // In local dev single-user mode, allow admin access
-    if (process.env.AUTH_MODE !== 'multi_user') {
-      return true;
-    }
-  } catch {
-    // unauthenticated
-  }
-  return false;
-}
+import { verifyAdmin } from '@/lib/admin';
 
 export async function GET(request: Request) {
   const isAdmin = await verifyAdmin(request);

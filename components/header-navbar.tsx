@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BookOpen, Settings as SettingsIcon, Sparkles, Moon, Sun, User, LogOut, MessageSquare, Info, LogIn } from 'lucide-react';
+import { BookOpen, Settings as SettingsIcon, Sparkles, Moon, Sun, User, LogOut, MessageSquare, Info, LogIn, ShieldCheck } from 'lucide-react';
 import { usePreferences } from '@/lib/preferences-context';
 import { createClient } from '@/lib/supabase/client';
 
@@ -213,6 +213,14 @@ export function HeaderNavbar() {
                       >
                         <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
                         <span>Feedback & Bugs</span>
+                      </Link>
+                      <Link
+                        href="/admin"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-foreground hover:bg-card-hover"
+                      >
+                        <ShieldCheck className="h-3.5 w-3.5 text-indigo-500" />
+                        <span>Admin Dashboard</span>
                       </Link>
                       <Link
                         href="/about"
