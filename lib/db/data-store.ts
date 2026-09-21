@@ -1613,7 +1613,6 @@ export class DataStore {
         }
 
         s.lastCheckedAt = new Date();
-        s.updatedAt = new Date();
 
         if (db) {
           await db
@@ -1622,7 +1621,6 @@ export class DataStore {
               hasUpdate: s.hasUpdate,
               nextChapterUrl: s.nextChapterUrl,
               lastCheckedAt: s.lastCheckedAt,
-              updatedAt: s.updatedAt,
             })
             .where(eq(schema.series.id, s.id));
         } else {
