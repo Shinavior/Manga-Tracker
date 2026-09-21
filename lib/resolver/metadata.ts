@@ -75,19 +75,50 @@ export async function scrapePageMetadata(url: string): Promise<ScrapedMetadata> 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 MangaTracker/1.0',
-        Accept: 'text/html,application/xhtml+xml',
-      },
-      redirect: 'follow',
-    });
+    let currentUrl = url;
+    let response: Response | null = null;
+    let hops = 0;
+
+    while (hops < 3) {
+      const target = new URL(currentUrl);
+      if (!['http:', 'https:'].includes(target.protocol)) {
+        clearTimeout(timeoutId);
+        return { title: null, rawTitle: null, coverUrl: null, siteName: null, error: 'INVALID_PROTOCOL' };
+      }
+      if (isPrivateIp(target.hostname)) {
+        clearTimeout(timeoutId);
+        return { title: null, rawTitle: null, coverUrl: null, siteName: null, error: 'SSRF_BLOCKED' };
+      }
+
+      const res = await fetch(currentUrl, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 MangaTracker/1.0',
+          Accept: 'text/html,application/xhtml+xml',
+        },
+        redirect: 'manual',
+      });
+
+      if ([301, 302, 303, 307, 308].includes(res.status)) {
+        const location = res.headers.get('location');
+        if (!location) {
+          response = res;
+          break;
+        }
+        currentUrl = new URL(location, currentUrl).toString();
+        hops++;
+        continue;
+      }
+
+      response = res;
+      break;
+    }
 
     clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      return { title: null, rawTitle: null, coverUrl: null, siteName: null, error: `HTTP_${response.status}` };
+    if (!response || !response.ok) {
+      return { title: null, rawTitle: null, coverUrl: null, siteName: null, error: `HTTP_${response?.status || 'FAIL'}` };
     }
 
     // Read first 64KB of HTML to parse head quickly

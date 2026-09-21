@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { BookOpen, Mail, ArrowRight, Loader2, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
 import { usePreferences } from '@/lib/preferences-context';
 
-export default function LoginPage() {
+function LoginForm() {
   const { t } = usePreferences();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -253,5 +253,19 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="min-h-[85vh] flex items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
+      <LoginForm />
+    </React.Suspense>
   );
 }
