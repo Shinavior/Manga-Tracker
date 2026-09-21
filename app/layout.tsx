@@ -16,7 +16,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className="bg-background text-foreground antialiased selection:bg-purple-600 selection:text-white transition-colors duration-200">
+      <body className="bg-background text-foreground antialiased selection:bg-indigo-600 selection:text-white transition-colors duration-200">
         <PreferencesProvider>
           <HeaderNavbar />
           <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">

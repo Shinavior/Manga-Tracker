@@ -49,18 +49,18 @@ export function FilterBar({
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={t('searchPlaceholder')}
-            className="w-full rounded-xl border border-border/70 bg-card/80 py-2 pl-10 pr-4 text-sm text-foreground placeholder-gray-400 dark:placeholder-gray-500 transition-all focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500/30"
+            className="w-full rounded-xl border border-border bg-card py-2 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/20"
           />
         </div>
 
         {/* Sort selector */}
         <div className="flex items-center gap-2">
           <div className="relative flex items-center">
-            <ArrowUpDown className="pointer-events-none absolute left-3 h-3.5 w-3.5 text-gray-400" />
+            <ArrowUpDown className="pointer-events-none absolute left-3 h-3.5 w-3.5 text-muted-foreground" />
             <select
               value={sort}
               onChange={(e) => onSortChange(e.target.value)}
-              className="appearance-none rounded-xl border border-border/70 bg-card/80 py-2 pl-9 pr-8 text-xs font-medium text-foreground transition-all hover:bg-card focus:border-purple-500 focus:outline-none cursor-pointer"
+              className="appearance-none rounded-xl border border-border bg-card py-2 pl-9 pr-8 text-xs font-medium text-foreground transition-all hover:bg-card-hover focus:border-indigo-500 focus:outline-none cursor-pointer"
             >
               <option value="updated">{t('sortUpdated')}</option>
               <option value="title">{t('sortTitle')}</option>
@@ -71,36 +71,32 @@ export function FilterBar({
         </div>
       </div>
 
-      {/* Status pills */}
-      <div className="flex flex-wrap items-center gap-1.5 pb-1">
+      {/* Status filter pills */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
         {Object.entries(STATUS_CONFIG).map(([key, config]) => {
           const isSelected = selectedStatus === key;
           const count = counts[key] ?? 0;
-          const label = t(config.labelKey);
 
           return (
             <button
               key={key}
               onClick={() => onStatusSelect(key)}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+              className={`flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-medium transition-all ${
                 isSelected
-                  ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
-                  : 'border border-border/60 bg-card/60 text-gray-600 dark:text-gray-400 hover:bg-card hover:text-foreground'
+                  ? 'bg-foreground text-background shadow-xs font-semibold'
+                  : 'border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-card-hover'
               }`}
             >
-              <span className={isSelected ? 'text-white' : config.color}>●</span>
-              <span>{label}</span>
-              {count > 0 && (
-                <span
-                  className={`ml-1 rounded-full px-1.5 py-0.2 text-[10px] ${
-                    isSelected
-                      ? 'bg-purple-700 text-white'
-                      : 'bg-black/5 dark:bg-white/10 text-gray-600 dark:text-gray-300'
-                  }`}
-                >
-                  {count}
-                </span>
-              )}
+              <span>{t(config.labelKey)}</span>
+              <span
+                className={`rounded-full px-1.5 py-0.2 text-[10px] font-semibold ${
+                  isSelected
+                    ? 'bg-background/20 text-background'
+                    : 'bg-muted text-muted-foreground'
+                }`}
+              >
+                {count}
+              </span>
             </button>
           );
         })}

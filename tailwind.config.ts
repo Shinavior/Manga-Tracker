@@ -17,9 +17,9 @@ const config: Config = {
         'card-hover': 'rgb(var(--card-hover) / <alpha-value>)',
         border: 'rgb(var(--border) / <alpha-value>)',
         primary: {
-          DEFAULT: '#7c3aed',
-          hover: '#6d28d9',
-          light: '#8b5cf6',
+          DEFAULT: '#4f46e5',
+          hover: '#4338ca',
+          light: '#6366f1',
         },
         accent: '#f59e0b',
         status: {

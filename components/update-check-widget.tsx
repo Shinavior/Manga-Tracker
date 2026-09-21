@@ -84,12 +84,12 @@ export function UpdateCheckWidget({
       }));
 
   return (
-    <div className="rounded-2xl border border-purple-500/30 bg-purple-500/5 dark:bg-gradient-to-br dark:from-purple-950/20 dark:via-zinc-900/60 dark:to-zinc-950 p-4 shadow-xl backdrop-blur-md transition-all duration-200">
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-200">
       {/* Header bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-600/15 dark:bg-purple-600/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 shadow-inner">
-            <Sparkles className="h-5 w-5" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-card border border-border text-foreground shadow-xs">
+            <Sparkles className="h-5 w-5 text-indigo-500" />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -97,17 +97,17 @@ export function UpdateCheckWidget({
                 {t('updateWidgetTitle')}
               </h2>
               {currentUpdatesInLibrary.length > 0 && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 animate-pulse">
-                  <span>●</span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                   <span>{t('updatesFoundBadge', { count: currentUpdatesInLibrary.length })}</span>
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {lastCheck ? (
                 <>
                   {t('lastChecked')} {lastCheck.timestamp} ({lastCheck.checkedCount} series) •{' '}
-                  <span className={lastCheck.updatedCount > 0 ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-gray-600 dark:text-zinc-300'}>
+                  <span className={lastCheck.updatedCount > 0 ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-foreground font-medium'}>
                     {t('updatesFoundBadge', { count: lastCheck.updatedCount })}
                   </span>
                 </>
@@ -181,7 +181,7 @@ export function UpdateCheckWidget({
               return (
                 <div
                   key={item.seriesId}
-                  className="group flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-card p-2.5 transition-all hover:border-purple-500/40 hover:bg-card-hover shadow-sm"
+                  className="group flex items-center justify-between gap-3 rounded-xl border border-border bg-background/50 p-2.5 transition-all hover:border-indigo-500/30 hover:bg-card shadow-xs"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     {matchingSeries?.coverUrl ? (
@@ -191,15 +191,15 @@ export function UpdateCheckWidget({
                         className="h-10 w-8 rounded-lg object-cover border border-border shrink-0"
                       />
                     ) : (
-                      <div className="flex h-10 w-8 items-center justify-center rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold text-xs shrink-0">
+                      <div className="flex h-10 w-8 items-center justify-center rounded-lg bg-card text-muted-foreground border border-border font-bold text-xs shrink-0">
                         {item.title.charAt(0).toUpperCase()}
                       </div>
                     )}
                     <div className="min-w-0">
-                      <h4 className="truncate text-xs font-semibold text-foreground group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
+                      <h4 className="truncate text-xs font-semibold text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                         {item.title}
                       </h4>
-                      <p className="text-[11px] text-gray-500 dark:text-zinc-400">
+                      <p className="text-[11px] text-muted-foreground">
                         {matchingSeries?.currentChapter?.label ? (
                           <>
                             {matchingSeries.currentChapter.label}

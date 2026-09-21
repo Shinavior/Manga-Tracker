@@ -33,33 +33,33 @@ export function HeaderNavbar() {
             </div>
           </Link>
 
-          <nav className="hidden sm:flex items-center gap-1">
+          <nav className="hidden sm:flex items-center gap-1.5">
             <Link
               href="/"
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs transition-colors ${
                 pathname === '/'
-                  ? 'bg-purple-600/10 text-purple-600 dark:text-purple-300 font-semibold'
-                  : 'text-gray-600 dark:text-zinc-300 hover:text-foreground hover:bg-black/5 dark:hover:bg-zinc-800'
+                  ? 'bg-card text-foreground font-semibold border border-border shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-card-hover'
               }`}
             >
               {t('navLibrary')}
             </Link>
             <Link
               href="/trash"
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs transition-colors ${
                 pathname === '/trash'
-                  ? 'bg-purple-600/10 text-purple-600 dark:text-purple-300 font-semibold'
-                  : 'text-gray-600 dark:text-zinc-300 hover:text-foreground hover:bg-black/5 dark:hover:bg-zinc-800'
+                  ? 'bg-card text-foreground font-semibold border border-border shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-card-hover'
               }`}
             >
               {t('navTrash')}
             </Link>
             <Link
               href="/settings"
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs transition-colors ${
                 pathname === '/settings'
-                  ? 'bg-purple-600/10 text-purple-600 dark:text-purple-300 font-semibold'
-                  : 'text-gray-600 dark:text-zinc-300 hover:text-foreground hover:bg-black/5 dark:hover:bg-zinc-800'
+                  ? 'bg-card text-foreground font-semibold border border-border shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-card-hover'
               }`}
             >
               {t('navSettings')}
@@ -87,7 +87,7 @@ export function HeaderNavbar() {
             {isLight ? (
               <Sun className="h-4 w-4 text-amber-500 animate-in spin-in-180 duration-200" />
             ) : (
-              <Moon className="h-4 w-4 text-purple-400 animate-in spin-in-180 duration-200" />
+              <Moon className="h-4 w-4 text-indigo-400 animate-in spin-in-180 duration-200" />
             )}
           </button>
 

@@ -203,15 +203,15 @@ export function AddMangaBar({ onSaveSuccess }: AddMangaBarProps) {
   return (
     <div className="w-full rounded-2xl border border-border bg-card/70 p-4 shadow-xl backdrop-blur-md transition-colors duration-200">
       {/* Mode Switcher Tabs */}
-      <div className="flex items-center justify-between border-b border-border/70 pb-3 mb-3">
-        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-background/80 border border-border/60">
+      <div className="flex items-center justify-between border-b border-border/60 pb-3 mb-3">
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-background border border-border">
           <button
             type="button"
             onClick={() => setMode('single')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               mode === 'single'
-                ? 'bg-purple-600 text-white shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-foreground'
+                ? 'bg-card text-foreground shadow-xs border border-border/80'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <Plus className="h-3.5 w-3.5" />
@@ -222,8 +222,8 @@ export function AddMangaBar({ onSaveSuccess }: AddMangaBarProps) {
             onClick={() => setMode('bulk')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               mode === 'bulk'
-                ? 'bg-purple-600 text-white shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-foreground'
+                ? 'bg-card text-foreground shadow-xs border border-border/80'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <ListPlus className="h-3.5 w-3.5" />
@@ -232,7 +232,7 @@ export function AddMangaBar({ onSaveSuccess }: AddMangaBarProps) {
         </div>
 
         {mode === 'bulk' && (
-          <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
+          <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400">
             {t('bulkDetected', { count: parsedUrls.length })}
           </span>
         )}
@@ -243,9 +243,9 @@ export function AddMangaBar({ onSaveSuccess }: AddMangaBarProps) {
         <form onSubmit={handleSingleSave} className="space-y-3">
           <div className="flex flex-col gap-2 sm:flex-row">
             <div className="relative flex-1">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-muted-foreground">
                 {isResolving ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-purple-500" />
+                  <Loader2 className="h-4 w-4 animate-spin text-indigo-500" />
                 ) : (
                   <LinkIcon className="h-4 w-4" />
                 )}
@@ -255,14 +255,14 @@ export function AddMangaBar({ onSaveSuccess }: AddMangaBarProps) {
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder={t('urlPlaceholder')}
-                className="w-full rounded-xl border border-border/80 bg-background/80 py-2.5 pl-10 pr-4 text-sm text-foreground placeholder-gray-400 dark:placeholder-gray-500 transition-all focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                className="w-full rounded-xl border border-border bg-background py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/20"
               />
             </div>
 
             <button
               type="submit"
               disabled={!url.trim() || isSaving || isResolving}
-              className="flex items-center justify-center gap-2 rounded-xl bg-purple-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-purple-600/25 transition-all hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-xs transition-all hover:bg-indigo-500 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {isSaving ? (
                 <>
@@ -279,24 +279,24 @@ export function AddMangaBar({ onSaveSuccess }: AddMangaBarProps) {
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-600 dark:text-red-300 border border-red-500/20">
-              <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
+            <div className="flex items-center gap-2 rounded-lg bg-rose-500/10 px-3 py-2 text-xs text-rose-600 dark:text-rose-400 border border-rose-500/20">
+              <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" />
               <span>{error}</span>
             </div>
           )}
 
           {/* Live Preview Card */}
           {preview && (
-            <div className="rounded-xl border border-purple-500/30 bg-purple-500/5 dark:bg-purple-950/20 p-3 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="rounded-xl border border-border bg-background/50 p-3 animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="flex items-start gap-3">
                 {preview.coverUrl ? (
                   <img
                     src={preview.coverUrl}
                     alt={preview.seriesTitle || 'Cover'}
-                    className="h-16 w-12 rounded-lg object-cover border border-purple-500/20"
+                    className="h-16 w-12 rounded-lg object-cover border border-border"
                   />
                 ) : (
-                  <div className="flex h-16 w-12 items-center justify-center rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs font-semibold">
+                  <div className="flex h-16 w-12 items-center justify-center rounded-lg bg-card text-muted-foreground border border-border text-xs font-semibold">
                     Manga
                   </div>
                 )}
@@ -306,15 +306,15 @@ export function AddMangaBar({ onSaveSuccess }: AddMangaBarProps) {
                     <h4 className="font-semibold text-foreground text-sm truncate">
                       {preview.seriesTitle || 'Untitled Series'}
                     </h4>
-                    <span className="rounded bg-purple-500/20 px-1.5 py-0.5 text-[10px] font-medium text-purple-600 dark:text-purple-300 uppercase tracking-wide">
+                    <span className="rounded bg-card border border-border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
                       {preview.source}
                     </span>
-                    <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-300">
+                    <span className="rounded bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
                       {preview.chapterLabel}
                     </span>
                   </div>
 
-                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5 font-mono">
+                  <p className="text-xs text-muted-foreground truncate mt-0.5 font-mono">
                     Key: {preview.seriesKey}
                   </p>
 
@@ -324,14 +324,14 @@ export function AddMangaBar({ onSaveSuccess }: AddMangaBarProps) {
                       value={customTitle}
                       onChange={(e) => setCustomTitle(e.target.value)}
                       placeholder={t('customTitlePlaceholder')}
-                      className="w-full rounded-lg border border-border/70 bg-background/60 px-2.5 py-1 text-xs text-foreground placeholder-gray-400 dark:placeholder-gray-500 focus:border-purple-500 focus:outline-none"
+                      className="w-full rounded-lg border border-border bg-background px-2.5 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:border-indigo-500 focus:outline-none"
                     />
                     <input
                       type="text"
                       value={tagsInput}
                       onChange={(e) => setTagsInput(e.target.value)}
                       placeholder={t('tagsPlaceholder')}
-                      className="w-full rounded-lg border border-border/70 bg-background/60 px-2.5 py-1 text-xs text-foreground placeholder-gray-400 dark:placeholder-gray-500 focus:border-purple-500 focus:outline-none"
+                      className="w-full rounded-lg border border-border bg-background px-2.5 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:border-indigo-500 focus:outline-none"
                     />
                   </div>
                 </div>
@@ -349,7 +349,7 @@ export function AddMangaBar({ onSaveSuccess }: AddMangaBarProps) {
               disabled={isBulkRunning}
               onChange={(e) => setBulkText(e.target.value)}
               placeholder={t('bulkPlaceholder')}
-              className="w-full rounded-xl border border-border/80 bg-background/80 p-3 text-xs sm:text-sm font-mono text-foreground placeholder-gray-400 dark:placeholder-gray-500 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+              className="w-full rounded-xl border border-border bg-background p-3 text-xs sm:text-sm font-mono text-foreground placeholder:text-muted-foreground focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/20 resize-y"
             />
           </div>
 
@@ -360,14 +360,14 @@ export function AddMangaBar({ onSaveSuccess }: AddMangaBarProps) {
               disabled={isBulkRunning}
               onChange={(e) => setBulkTagsInput(e.target.value)}
               placeholder={t('tagsPlaceholder')}
-              className="w-full sm:w-80 rounded-xl border border-border/70 bg-background/60 px-3 py-2 text-xs text-foreground placeholder-gray-400 dark:placeholder-gray-500 focus:border-purple-500 focus:outline-none"
+              className="w-full sm:w-80 rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-indigo-500 focus:outline-none"
             />
 
             <button
               type="button"
               onClick={handleStartBulk}
               disabled={parsedUrls.length === 0 || isBulkRunning}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-purple-600 px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-purple-600/25 transition-all hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-2 text-sm font-semibold text-white shadow-xs transition-all hover:bg-indigo-500 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {isBulkRunning ? (
                 <>
@@ -437,7 +437,7 @@ export function AddMangaBar({ onSaveSuccess }: AddMangaBarProps) {
                   </span>
                   <div className="shrink-0 flex items-center gap-1">
                     {item.status === 'processing' && (
-                      <span className="flex items-center gap-1 text-purple-500">
+                      <span className="flex items-center gap-1 text-indigo-500">
                         <Loader2 className="h-3 w-3 animate-spin" />
                       </span>
                     )}

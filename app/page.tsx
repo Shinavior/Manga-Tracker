@@ -179,13 +179,13 @@ export default function LibraryPage() {
       <section className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
-            <h1 className="text-2xl font-extrabold text-foreground tracking-tight sm:text-3xl flex items-center gap-2.5">
+            <h1 className="text-2xl font-bold text-foreground tracking-tight sm:text-3xl flex items-center gap-2.5">
               <span>{t('myLibraryTitle')}</span>
-              <span className="rounded-full bg-purple-500/20 px-2.5 py-0.5 text-xs font-semibold text-purple-600 dark:text-purple-300 border border-purple-500/30">
+              <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground border border-border font-mono">
                 {seriesList.length}
               </span>
             </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+            <p className="text-sm text-muted-foreground mt-0.5">
               {t('librarySubtitle')}
             </p>
           </div>
@@ -201,9 +201,9 @@ export default function LibraryPage() {
                   setIsSelectMode(true);
                 }
               }}
-              className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                 isSelectMode
-                  ? 'border-purple-500 bg-purple-600 text-white shadow-md shadow-purple-600/20'
+                  ? 'border-indigo-500 bg-indigo-600 text-white shadow-xs'
                   : 'border-border bg-card text-foreground hover:bg-card-hover'
               }`}
             >
@@ -214,10 +214,10 @@ export default function LibraryPage() {
             {/* Refresh Library */}
             <button
               onClick={() => fetchSeries()}
-              className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-1.5 text-xs text-foreground hover:bg-card-hover transition-colors"
+              className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-1.5 text-xs text-foreground hover:bg-card-hover transition-colors cursor-pointer"
               title={t('refresh')}
             >
-              <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin text-purple-500' : ''}`} />
+              <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin text-indigo-500' : ''}`} />
               <span>{t('refresh')}</span>
             </button>
           </div>
@@ -260,14 +260,14 @@ export default function LibraryPage() {
             ))}
           </div>
         ) : displayedSeries.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-border/70 bg-card/40 py-16 px-4 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 mb-3 border border-purple-500/20">
+          <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-border bg-card/30 py-16 px-4 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground mb-3 border border-border">
               <BookOpen className="h-7 w-7" />
             </div>
             <h3 className="text-base font-bold text-foreground">
               {filterUpdatesOnly ? t('noUpdatesFound') : t('noSeriesFound')}
             </h3>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 max-w-sm">
+            <p className="mt-1 text-xs text-muted-foreground max-w-sm">
               {filterUpdatesOnly
                 ? t('noUpdatesHint')
                 : search || selectedStatus !== 'all'
@@ -295,9 +295,9 @@ export default function LibraryPage() {
       {/* Floating Batch Action Bar (Appears when in select mode) */}
       {isSelectMode && (
         <div className="fixed bottom-6 inset-x-0 z-40 flex justify-center px-4 animate-in slide-in-from-bottom-4 fade-in duration-200">
-          <div className="flex items-center gap-2 sm:gap-4 rounded-2xl border border-border bg-card/95 px-4 py-3 shadow-2xl backdrop-blur-xl border-purple-500/30">
+          <div className="flex items-center gap-2 sm:gap-4 rounded-2xl border border-border bg-card/95 px-4 py-3 shadow-2xl backdrop-blur-xl">
             <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-foreground">
-              <span className="h-2 w-2 rounded-full bg-purple-500 animate-ping" />
+              <span className="h-2 w-2 rounded-full bg-indigo-500 animate-ping" />
               <span>{t('selectedCount', { count: selectedIds.size })}</span>
             </div>
 
@@ -307,7 +307,7 @@ export default function LibraryPage() {
               <button
                 type="button"
                 onClick={handleSelectAll}
-                className="rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-card-hover transition-colors"
+                className="rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-card-hover transition-colors cursor-pointer"
               >
                 {t('selectAll')}
               </button>
