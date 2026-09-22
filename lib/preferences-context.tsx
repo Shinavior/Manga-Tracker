@@ -176,6 +176,39 @@ export interface Translations {
   dragInstruction: string;
   sectionMobileTitle: string;
   sectionMobileDesc: string;
+
+  // Help Modal & User Guide
+  howToUse: string;
+  userGuide: string;
+  userGuideSubtitle: string;
+  dontShowAgain: string;
+  prevStep: string;
+  nextStep: string;
+  finishTutorial: string;
+  stepIndicator: string;
+  tipLabel: string;
+
+  // Announcements
+  announcements: string;
+  announcementsSubtitle: string;
+  newAnnouncement: string;
+  noAnnouncements: string;
+  categoryAll: string;
+  categoryUpdate: string;
+  categoryFeature: string;
+  categoryGuide: string;
+  categoryNotice: string;
+  pinnedBadge: string;
+  adminOnly: string;
+  titleLabel: string;
+  contentLabel: string;
+  categoryLabel: string;
+  linkUrlLabel: string;
+  pinPost: string;
+  publish: string;
+  publishing: string;
+  deleteConfirm: string;
+  close: string;
 }
 
 const translations: Record<Language, Translations> = {
@@ -346,10 +379,43 @@ const translations: Record<Language, Translations> = {
     revokeToken: 'ยกเลิก',
     sectionBookmarkletTitle: 'บุ๊กมาร์คเลตด้วยคลิกเดียว',
     sectionBookmarkletDesc: 'ลากปุ่มด้านล่างไปยังแถบบุ๊กมาร์คในเบราว์เซอร์ เพื่อบันทึกมังงะได้ทันทีขณะอ่าน!',
-    testToastPreview: '🧪 ทดสอบการแจ้งเตือน',
-    dragInstruction: '👉 ลากปุ่มนี้ไปยังแถบบุ๊กมาร์ค:',
+    testToastPreview: 'ทดสอบการแจ้งเตือน',
+    dragInstruction: 'ลากปุ่มนี้ไปยังแถบบุ๊กมาร์ค:',
     sectionMobileTitle: 'แชร์มือถือ & PWA',
     sectionMobileDesc: 'ตั้งค่าการแชร์จาก Safari, Chrome และแอปอ่านมังงะบนมือถือ',
+
+    // Help Modal & User Guide
+    howToUse: 'วิธีใช้',
+    userGuide: 'คู่มือใช้งาน',
+    userGuideSubtitle: 'วางแผนและติดตามมังงะตั้งแต่ค้นหาจนอ่านตอนล่าสุด',
+    dontShowAgain: 'ไม่ต้องแสดงหน้านี้อีก',
+    prevStep: 'ก่อนหน้า',
+    nextStep: 'ถัดไป',
+    finishTutorial: 'เริ่มต้นใช้งาน',
+    stepIndicator: 'ขั้นตอน {current} / {total} • {title}',
+    tipLabel: 'คำแนะนำ',
+
+    // Announcements
+    announcements: 'ประกาศ',
+    announcementsSubtitle: 'ข่าวสาร อัปเดตฟีเจอร์ และวิธีใช้งานระบบ',
+    newAnnouncement: 'เขียนประกาศใหม่',
+    noAnnouncements: 'ยังไม่มีประกาศในขณะนี้',
+    categoryAll: 'ทั้งหมด',
+    categoryUpdate: 'อัปเดตระบบ',
+    categoryFeature: 'ฟีเจอร์ใหม่',
+    categoryGuide: 'วิธีใช้งาน',
+    categoryNotice: 'แจ้งเตือน',
+    pinnedBadge: 'ปักหมุด',
+    adminOnly: 'เฉพาะแอดมิน',
+    titleLabel: 'หัวข้อประกาศ',
+    contentLabel: 'เนื้อหาประกาศ',
+    categoryLabel: 'หมวดหมู่',
+    linkUrlLabel: 'ลิงก์เพิ่มเติม (ถ้ามี)',
+    pinPost: 'ปักหมุดประกาศนี้ไว้บนสุด',
+    publish: 'เผยแพร่ประกาศ',
+    publishing: 'กำลังเผยแพร่...',
+    deleteConfirm: 'ยืนยันที่จะลบประกาศนี้หรือไม่?',
+    close: 'ปิด',
   },
   en: {
     // Navigation & Header
@@ -518,10 +584,43 @@ const translations: Record<Language, Translations> = {
     revokeToken: 'Revoke',
     sectionBookmarkletTitle: '1-Tap Browser Bookmarklet',
     sectionBookmarkletDesc: 'Drag the button below to your browser bookmarks bar. When reading any manga online, click it to save instantly!',
-    testToastPreview: '🧪 Test Toast Preview',
-    dragInstruction: '👉 Drag this button to your Bookmarks Bar:',
+    testToastPreview: 'Test Toast Preview',
+    dragInstruction: 'Drag this button to your Bookmarks Bar:',
     sectionMobileTitle: 'Mobile Sharing & PWA Setup',
     sectionMobileDesc: 'Configure mobile sharing from Safari, Chrome, and reading apps.',
+
+    // Help Modal & User Guide
+    howToUse: 'How to Use',
+    userGuide: 'User Guide',
+    userGuideSubtitle: 'Effortlessly track and organize manga from discovery to latest chapters',
+    dontShowAgain: "Don't show this again",
+    prevStep: 'Previous',
+    nextStep: 'Next',
+    finishTutorial: 'Get Started',
+    stepIndicator: 'Step {current} / {total} • {title}',
+    tipLabel: 'Pro Tip',
+
+    // Announcements
+    announcements: 'Announcements',
+    announcementsSubtitle: 'System updates, new features, and user guides',
+    newAnnouncement: 'New Announcement',
+    noAnnouncements: 'No announcements at this time',
+    categoryAll: 'All',
+    categoryUpdate: 'System Update',
+    categoryFeature: 'New Feature',
+    categoryGuide: 'User Guide',
+    categoryNotice: 'Notice',
+    pinnedBadge: 'Pinned',
+    adminOnly: 'Admin Only',
+    titleLabel: 'Announcement Title',
+    contentLabel: 'Announcement Content',
+    categoryLabel: 'Category',
+    linkUrlLabel: 'Additional Link (Optional)',
+    pinPost: 'Pin this announcement to top',
+    publish: 'Publish Announcement',
+    publishing: 'Publishing...',
+    deleteConfirm: 'Are you sure you want to delete this announcement?',
+    close: 'Close',
   },
 };
 

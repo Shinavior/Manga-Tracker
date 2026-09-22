@@ -194,6 +194,35 @@ drop policy if exists feedback_select_own on feedback;
 create policy feedback_select_own on feedback
   for select using (user_id = auth.uid());
 
+-- ============ announcements ============
+create table if not exists announcements (
+  id           uuid primary key default gen_random_uuid(),
+  title        text not null,
+  content      text not null,
+  category     text not null default 'update',
+  is_pinned    boolean not null default false,
+  link_url     text,
+  author_email text,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now(),
+  constraint announcements_category_chk check (
+    category in ('update', 'feature', 'guide', 'notice')
+  )
+);
+
+create index if not exists announcements_pinned_idx on announcements(is_pinned, created_at desc);
+
+-- Announcements RLS: Everyone can read announcements
+alter table announcements enable row level security;
+
+drop policy if exists announcements_select_public on announcements;
+create policy announcements_select_public on announcements
+  for select using (true);
+
+drop policy if exists announcements_admin_write on announcements;
+create policy announcements_admin_write on announcements
+  for all using (true) with check (true);
+
 -- Auto-sync auth.users to public.users on signup
 create or replace function public.handle_new_user()
 returns trigger as $$

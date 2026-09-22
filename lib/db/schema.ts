@@ -157,3 +157,22 @@ export const feedback = pgTable(
   })
 );
 
+// ============ announcements ============
+export const announcements = pgTable(
+  'announcements',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    title: text('title').notNull(),
+    content: text('content').notNull(),
+    category: text('category').notNull().default('update'), // update | feature | guide | notice
+    isPinned: boolean('is_pinned').notNull().default(false),
+    linkUrl: text('link_url'),
+    authorEmail: text('author_email'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    announcementsPinnedIdx: index('announcements_pinned_idx').on(table.isPinned, table.createdAt),
+  })
+);
+
