@@ -17,6 +17,7 @@ import {
   Filter,
 } from 'lucide-react';
 import { usePreferences } from '@/lib/preferences-context';
+import { MarkdownContent } from '@/components/markdown-content';
 
 export interface AnnouncementItem {
   id: string;
@@ -350,12 +351,17 @@ export function AnnouncementsModal({
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-medium text-foreground">{t('contentLabel')}</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-foreground">{t('contentLabel')}</label>
+                  <span className="text-[10px] text-indigo-500 font-mono">
+                    {isTh ? 'รองรับรูปภาพ: ![คำอธิบาย](URL รูป) และ **ตัวหนา**' : 'Supports: ![alt](image_url) and **bold**'}
+                  </span>
+                </div>
                 <textarea
                   rows={4}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  placeholder={isTh ? 'รายละเอียดประกาศ ข้อมูลอัปเดต หรือคำแนะนำ...' : 'Announcement details and notes...'}
+                  placeholder={isTh ? 'รายละเอียดประกาศ... สามารถแทรกรูปภาพได้ด้วย ![คำอธิบาย](https://...)' : 'Announcement notes... you can insert images via ![alt](https://...)'}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-border bg-card text-foreground focus:outline-hidden focus:ring-1 focus:ring-indigo-500 leading-relaxed"
                   required
                 />
@@ -467,9 +473,9 @@ export function AnnouncementsModal({
                       )}
                     </div>
 
-                    <p className="mt-2.5 text-xs sm:text-[13px] text-muted-foreground leading-relaxed whitespace-pre-line">
-                      {item.content}
-                    </p>
+                    <div className="mt-2.5">
+                      <MarkdownContent content={item.content} />
+                    </div>
 
                     {item.linkUrl && (
                       <div className="mt-3 pt-2.5 border-t border-border/60">

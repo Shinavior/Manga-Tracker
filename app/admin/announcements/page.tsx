@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { AdminNav } from '@/components/admin/admin-nav';
 import { AnnouncementItem } from '@/components/announcements-modal';
+import { MarkdownContent } from '@/components/markdown-content';
 
 export default function AdminAnnouncementsPage() {
   const [items, setItems] = useState<AnnouncementItem[]>([]);
@@ -210,12 +211,17 @@ export default function AdminAnnouncementsPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-medium text-foreground">Content (เนื้อหา)</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-foreground">Content (เนื้อหา)</label>
+                  <span className="text-[10px] text-indigo-500 font-mono">
+                    Markdown: ![คำอธิบาย](URL รูป) | **ตัวหนา** | [ลิงก์](URL)
+                  </span>
+                </div>
                 <textarea
                   rows={4}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  placeholder="Details, release notes, or instructions..."
+                  placeholder="Details... Supports images like ![screenshot](https://example.com/pic.png)"
                   className="w-full px-3 py-2 text-xs rounded-xl border border-border bg-background text-foreground focus:outline-hidden focus:ring-1 focus:ring-indigo-500 leading-relaxed"
                   required
                 />
@@ -309,9 +315,9 @@ export default function AdminAnnouncementsPage() {
                         {item.title}
                       </h4>
 
-                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                        {item.content}
-                      </p>
+                      <div className="mt-1.5 max-h-48 overflow-y-auto">
+                        <MarkdownContent content={item.content} />
+                      </div>
 
                       {item.linkUrl && (
                         <a
